@@ -22,10 +22,10 @@
  */
 
 #include "uart.h"
+#include <stdlib.h>
 
 // Debug Mode; comment out on Release
 //#define _DEBUG			0
-
 
 /*! \brief Configures baud rate (refer datasheet) */
 void initUART(void)
@@ -76,6 +76,34 @@ void writeString(char *str)
 	{
 		putByte(*str);
 		++str;
+	}
+}
+
+//Convert unsigned 8-bit num to str with given base
+void writeNumChar(uint8_t num, uint8_t base)
+{
+    uint8_t i = 0;
+    char str[10];
+    itoa(num, str, base);
+
+	while (str[i] != '\0')
+	{
+		putByte(str[i]);
+		++i;
+	}
+}
+
+//Convert unsigned 16-bit num to str with given base
+void writeNumShort(uint16_t num, uint8_t base)
+{
+    uint8_t i = 0;
+    char str[10];
+    itoa(num, str, base);
+
+	while (str[i] != '\0')
+	{
+		putByte(str[i]);
+		++i;
 	}
 }
 
