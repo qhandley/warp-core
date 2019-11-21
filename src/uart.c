@@ -30,19 +30,19 @@
 /*! \brief Configures baud rate (refer datasheet) */
 void initUART(void)
 {
-	// Not necessary; initialize anyway
-	DDRD |= _BV(PD1);
-	DDRD &= ~_BV(PD0);
+    // Not necessary; initialize anyway
+    DDRD |= _BV(PD1);
+    DDRD &= ~_BV(PD0);
 
-	// Set baud rate; lower byte and top nibble
-	UBRR0H = ((_UBRR) & 0xF00);
-	UBRR0L = (uint8_t) ((_UBRR) & 0xFF);
+    // Set baud rate; lower byte and top nibble
+    UBRR0H = ((_UBRR) & 0xF00);
+    UBRR0L = (uint8_t) ((_UBRR) & 0xFF);
 
-	TX_START();
-	RX_START();
+    TX_START();
+    RX_START();
 
-	// Set frame format = 8-N-1
-	UCSR0C = (_DATA << UCSZ00);
+    // Set frame format = 8-N-1
+    UCSR0C = (_DATA << UCSZ00);
 
 }
 
@@ -52,9 +52,9 @@ void initUART(void)
  */
 uint8_t getByte(void)
 {
-	// Check to see if something was received
-	while (!(UCSR0A & _BV(RXC0)));
-	return (uint8_t) UDR0;
+    // Check to see if something was received
+    while (!(UCSR0A & _BV(RXC0)));
+    return (uint8_t) UDR0;
 }
 
 
@@ -64,75 +64,89 @@ uint8_t getByte(void)
  */
 void putByte(unsigned char data)
 {
-	// Stay here until data buffer is empty
-	while (!(UCSR0A & _BV(UDRE0)));
-	UDR0 = (unsigned char) data;
+    // Stay here until data buffer is empty
+    while (!(UCSR0A & _BV(UDRE0)));
+    UDR0 = (unsigned char) data;
 }
 
 /*! \brief Writes an ASCII string to the TX buffer */
 void writeString(char *str)
 {
-	while (*str != '\0')
-	{
-		putByte(*str);
-		++str;
-	}
+    while (*str != '\0')
+    {
+        putByte(*str);
+        ++str;
+    }
 }
 
 //Convert unsigned 8-bit num to str with given base
-void writeNumChar(uint8_t num, uint8_t base)
+void writeNumChar(char* id, uint8_t num, uint8_t base)
 {
     uint8_t i = 0;
     char str[10];
     itoa(num, str, base);
 
-	while (str[i] != '\0')
-	{
-		putByte(str[i]);
-		++i;
-	}
+    if(id)
+    {
+        writeString(id);
+    }
+
+    while (str[i] != '\0')
+    {
+        putByte(str[i]);
+        ++i;
+    }
+    putByte('\r');
+    putByte('\n');
 }
 
 //Convert unsigned 16-bit num to str with given base
-void writeNumShort(uint16_t num, uint8_t base)
+void writeNumShort(char* id, uint16_t num, uint8_t base)
 {
     uint8_t i = 0;
     char str[10];
     itoa(num, str, base);
 
-	while (str[i] != '\0')
-	{
-		putByte(str[i]);
-		++i;
-	}
+    if(id)
+    {
+        writeString(id);
+    }
+
+    while (str[i] != '\0')
+    {
+        putByte(str[i]);
+        ++i;
+    }
+    putByte('\r');
+    putByte('\n');
 }
 
 const char* readString(void)
 {
-	static char rxstr[RX_BUFF];
-	static char* temp;
-	temp = rxstr;
+    static char rxstr[RX_BUFF];
+    static char* temp;
+    temp = rxstr;
 
-	while((*temp = getByte()) != '\n')
-	{
-		++temp;
-	}
+    while((*temp = getByte()) != '\n')
+    {
+        ++temp;
+    }
 
-	return rxstr;
+    return rxstr;
 }
 
 #if _DEBUG
 
-	int main(void)
-	{
-		initUART();
-		while(1)
-		{
-			writeString(readString());
-			putByte('\r');
-			putByte('\n');
-		}
-		return 0;
-	}
+int main(void)
+{
+    initUART();
+    while(1)
+    {
+        writeString(readString());
+        putByte('\r');
+        putByte('\n');
+    }
+    return 0;
+}
 
 #endif
