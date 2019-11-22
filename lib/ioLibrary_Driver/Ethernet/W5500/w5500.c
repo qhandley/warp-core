@@ -52,7 +52,6 @@
 //
 //*****************************************************************************
 //#include <stdio.h>
-#include "../wizchip_select.h"
 #include "w5500.h"
 
 #define _W5500_SPI_VDM_OP_          0x00

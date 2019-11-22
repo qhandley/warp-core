@@ -52,7 +52,6 @@
 #include <stddef.h>
 #include <avr/io.h>
 
-#include "wizchip_select.h"
 #include "wizchip_conf.h"
 
 /////////////

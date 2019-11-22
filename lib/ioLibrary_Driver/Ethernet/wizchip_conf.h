@@ -58,6 +58,7 @@
 extern "C" {
 #endif
 
+#include "wizchip_select.h"
 #include <stdint.h>
 /**
  * @brief Select WIZCHIP.

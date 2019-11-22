@@ -6,13 +6,14 @@
 #include "tcp_server.h"
 #include "uart.h"
 
-#define MAC         0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00
-#define IP          192, 168, 1, 10 
+#define MAC         0x44, 0xFF, 0xFF, 0x00, 0x00, 0x00
+#define IP          192, 168, 1, 110 
 #define SUBNET      255, 255, 255, 0 
 #define GATEWAY     192, 168, 1, 1 
 #define DNS         8, 8, 8, 8
 
-#if LOOPBACK_MODE == LOOPBACK_MAIN_NOBLOCK
+#pragma message("Wizchip ID: " _WIZCHIP_ID_)
+
 void initSPI()
 {
     DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2); //sck, mosi, ss outputs
@@ -66,20 +67,12 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
    return 1;
 }
 
-#endif
-
 int main()
 {
     initUART();
     initSPI();
 
-    //uint8_t rw_buffer[2000];
-    char buffer1[10];
-    char buffer2[10];
-
-    uint8_t ip[] = {192, 168, 1, 10};
-    char okay[] = "OKAY";
-    char err[] = "ERROR";
+    uint8_t buf[1000];
 
     struct wiz_NetInfo_t network_config = 
     {
@@ -88,107 +81,34 @@ int main()
         {SUBNET},
         {GATEWAY},
         {DNS},
-        1
+        2
     };
 
     struct wiz_NetInfo_t temp;
 
-    uint8_t txsize[8] = {16, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t rxsize[8] = {16, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t txsize[8] = {1, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t rxsize[8] = {1, 0, 0, 0, 0, 0, 0, 0};
 
+    //setup delay
     _delay_ms(5000);
 
-    int8_t init_ret = wizchip_init(txsize, rxsize); //software reset and configure tx/rx buffers
-
-    _delay_ms(2000);
-
+    writeNumChar("Init return: ", wizchip_init(txsize, rxsize), 10);
     wizchip_setnetinfo(&network_config);
     wizchip_getnetinfo(&temp);
 
-    //setRTR(0xFFFF); //maximum value
+    writeNumChar("ip[0]: ", temp.ip[0], 10);
+    writeNumChar("ip[1]: ", temp.ip[1], 10);
+    writeNumChar("ip[2]: ", temp.ip[2], 10);
+    writeNumChar("ip[3]: ", temp.ip[3], 10);
 
-    //int8_t ret = socket(0, Sn_MR_TCP, 8080, 0); //establish socket 0 in TCP mode port 8080 no flags
-    setSn_MR(0, 0x01); //TCP
-    setSn_PORT(0, 8080); //port
-    setSn_CR(0, Sn_CR_OPEN);
-    _delay_ms(100);
-
-    //while(getSn_CR(0));
+    writeNumChar("version: ", getVERSIONR(), 16);
+    writeNumShort("retry count: ", getRTR(), 10);
 
     while(1)
     {
-        itoa(init_ret, buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        /*
-        itoa(ret, buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-        */
-
-        itoa(getSn_SR(0), buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        itoa(getSn_MR(0), buffer1, 16);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        itoa(getSn_PORT(0), buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        uint8_t rcr = 8; // getRCR();
-
-        itoa(rcr, buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        itoa(getSn_IR(0), buffer1, 16);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        itoa(getIR(), buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        /*
-        itoa(temp.mac[0], buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        itoa(temp.ip[0], buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        itoa(temp.sn[0], buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        itoa(temp.gw[0], buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-
-        itoa(temp.dns[0], buffer1, 10);
-        writeString(buffer1);
-        putByte('\r');
-        putByte('\n');
-        */
-
-        _delay_ms(1000);
+        loopback_tcps(0, buf, 8080);
+        writeNumChar("Socket 0 SR: ", getSn_SR(0), 16);
+        _delay_ms(250);
     }
 
     return 0;

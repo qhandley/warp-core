@@ -88,6 +88,7 @@
  extern "C" {
 #endif
 
+#include "wizchip_select.h"
 #include "wizchip_conf.h"
 
 #define SOCKET                uint8_t  ///< SOCKET type define for legacy driver

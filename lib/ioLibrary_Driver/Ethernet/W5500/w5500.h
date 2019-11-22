@@ -53,6 +53,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include "../wizchip_select.h"
 #include "wizchip_conf.h"
 
 /// @cond DOXY_APPLY_CODE

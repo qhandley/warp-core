@@ -53,7 +53,6 @@
 //! THE POSSIBILITY OF SUCH DAMAGE.
 //
 //*****************************************************************************
-#include "wizchip_select.h"
 #include "socket.h"
 
 //M20150401 : Typing Error
