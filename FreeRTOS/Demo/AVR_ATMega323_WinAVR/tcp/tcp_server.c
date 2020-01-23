@@ -8,12 +8,35 @@
 #include "socket.h"
 #include "uart.h"
 
-void initSPI( void );
+#define vInitSPI()                                          \
+{                                                           \
+    DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2);           \
+    SPCR |= (1 << SPE) | (1 << MSTR);                       \
+}                                                           
 
-void initSPI( void )
+void vInitTcpServer( void )
 {
-    DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2); //sck, mosi, ss outputs
-    SPCR |= (1 << SPE) | (1 << MSTR);
+    vInitSPI();
+    
+    {
+        struct wiz_NetInfo_t network_config = 
+        {
+            { tcpMAC },
+            { tcpIP },
+            { tcpSUBNET },
+            { tcpGATEWAY },
+            { tcpDNS },
+            2
+        };
+
+        uint8_t txsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
+        uint8_t rxsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
+        
+        wizchip_init( txsize, rxsize );
+        wizchip_setnetinfo( &network_config );
+    }
+
+    return;
 }
 
 int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
