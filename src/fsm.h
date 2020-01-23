@@ -22,14 +22,11 @@ typedef enum state_id
     NUM_STATES 
 }state_id;
 
-/* 
- * Idea: create a set of ret codes for each unique state
- */
 typedef enum ret_id
 {
     OK,
     FAIL,
-    //add additional ret id's for dif transitions
+    //TODO: add additional ret id's for dif transitions
 
     NUM_RETS
 }ret_id;

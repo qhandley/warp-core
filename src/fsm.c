@@ -48,6 +48,8 @@ state_id sm_engine(state_t* curr_state)
 int main()
 {
     //declare an array of states
+    state_t states[NUM_STATES];
+
     //init the states
     //prime state machine engine with entry state
     //e.g. state_t curr_state = states[ENTRY_STATE];
@@ -55,7 +57,8 @@ int main()
     for(;;)
     {
         //run the engine and update state
-        //e.g. curr_state = sm_engine(&curr_state);
+        //e.g. state_id next_state = sm_engine(&curr_state);
+        //curr_state = states[next_state];
     }
     
     return 0;
