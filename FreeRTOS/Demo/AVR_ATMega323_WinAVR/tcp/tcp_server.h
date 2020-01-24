@@ -26,6 +26,23 @@ typedef enum
     tcpSOCKET7
 } eSocketNum;
 
+typedef struct
+{
+    uint8_t cmd;
+} xTcpCmdType_t;
+
+typedef struct
+{
+    uint8_t data;
+} xTcpDataType_t;
+
+
+#define vInitSPI()                                          \
+{                                                           \
+    DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2);           \
+    SPCR |= (1 << SPE) | (1 << MSTR);                       \
+}                                                           
+
 // #pragma message("Wizchip ID: " _WIZCHIP_ID_)
 
 /* Loopback test debug message printout enable */
@@ -41,6 +58,8 @@ typedef enum
 /************************/
 #define LOOPBACK_MAIN_NOBLOCK    0
 #define LOOPBACK_MODE   LOOPBACK_MAIN_NOBLOCK
+
+void vTcpServerInitialise( unsigned portBASE_TYPE uxQueueLength );
 
 // TCP server loopback test example
 int32_t loopback_tcps( uint8_t sn, uint8_t* buf, uint16_t port );

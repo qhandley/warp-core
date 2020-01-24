@@ -103,6 +103,10 @@ Changes from V4.0.5
 
 /* TCP functionality */
 #include "tcp/tcp_server.h"
+#include "socket.h"
+
+/* UART functionality */
+#include "uart.h"
 
 /* Priority definitions for most of the tasks in the demo application.  Some
 tasks just use the idle priority. */
@@ -141,6 +145,8 @@ static void vErrorChecks( void *pvParameters );
 
 static void vBlinkyFunction( void *pvParameters );
 
+static void vTcpServerLoopback( void *pvParameters );
+
 /*
  * Checks the unique counts of other tasks to ensure they are still operational.
  * Flashes an LED if everything is okay.
@@ -162,20 +168,62 @@ void vApplicationIdleHook( void );
 
 short main( void )
 {
-	prvIncrementResetCount();
+	//prvIncrementResetCount();
 
 	/* Setup the LED's for output. */
-	vParTestInitialise();
+	//vParTestInitialise();
+
+    /* Setup TCP server for communication */
+    //vTcpServerInitialise();
+    
+    vInitSPI();
+    initUART();
+
+    struct wiz_NetInfo_t network_config = 
+    {
+        { tcpMAC },
+        { tcpIP },
+        { tcpSUBNET },
+        { tcpGATEWAY },
+        { tcpDNS },
+        2
+    };
+
+    struct wiz_NetInfo_t temp;
+
+    uint8_t txsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
+    uint8_t rxsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
+
+    _delay_ms(2000);
+
+    wizchip_setnetinfo( &network_config );
+    wizchip_getnetinfo( &temp );
+
+    wizchip_init(txsize, rxsize);
+
+    BaseType_t status = 0;
 
 	/* Create the standard demo tasks. */
 	//vStartIntegerMathTasks( tskIDLE_PRIORITY );
 	//vAltStartComTestTasks( mainCOM_TEST_PRIORITY, mainCOM_TEST_BAUD_RATE, mainCOM_TEST_LED );
 	//vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
 	//vStartRegTestTasks();
+    
+    _delay_ms(2000);
+    writeNumChar("Version: ", (uint8_t) getVERSIONR(), 10);
+    _delay_ms(1000);
+    writeNumShort("Retry Count: ", getRTR(), 10);
+    _delay_ms(1000);
+    writeNumChar("ip[0]: ", temp.ip[0], 10);
+    _delay_ms(1000);
+    writeNumChar("rx 0 buf size: ", getSn_RXBUF_SIZE(0), 10);
 
 	/* Create the tasks defined within this file. */
 	//xTaskCreate( vErrorChecks, "Check", configMINIMAL_STACK_SIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
-	xTaskCreate( vBlinkyFunction, "Blink", 128, NULL, 3, NULL );
+	//xTaskCreate( vBlinkyFunction, "Blink", 128, NULL, 3, NULL );
+	status = xTaskCreate( vTcpServerLoopback, "TCP", 512, NULL, 3, NULL );
+
+    writeNumChar("Status: ", (uint8_t) status, 10);
 
 	/* Create the co-routines that flash the LED's. */
 	//vStartFlashCoRoutines( mainNUM_FLASH_COROUTINES );
@@ -216,6 +264,20 @@ static void vBlinkyFunction( void *pvParameters )
         loopback_tcps( 0, temp, 8080 );
 
         vTaskDelay( xDelay );
+    }
+}
+
+static void vTcpServerLoopback( void *pvParameters )
+{
+	( void ) pvParameters;
+
+    uint8_t buf[64];
+
+    for( ;; )
+    {
+        loopback_tcps( 0, buf, 8080 );
+        _delay_ms(500);
+        writeNumChar("Socket 0 SR: ", getSn_SR( 0 ), 16);
     }
 }
 
