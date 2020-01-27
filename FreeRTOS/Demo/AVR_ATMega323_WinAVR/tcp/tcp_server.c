@@ -1,68 +1,113 @@
-/* Scheduler include files */
-#include <stdlib.h>
+/* Scheduler include files. */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "queue.h"
 
+/* AVR include files. */
+#include <stdlib.h>
 #include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#define F_CPU           16000000
 #include <util/delay.h>
-#include "uart.h"
 
-/* TCP include files */
+/* TCP include files. */
 #include "tcp_server.h"
 #include "socket.h"
 
-static QueueHandle_t xRxedCmds;
-static QueueHandle_t xDataForTx;
+/* UART include file. */
+#include "uart.h"
 
-void vTcpServerInitialise( unsigned portBASE_TYPE uxQueueLength )
+#define tcpDELAY_TIME           ( ( const TickType_t ) 100 )
+
+/* Static prototypes for methods in this file. */
+static void vTcpServerInitialise( void );
+static int8_t serverStatus( eSocketNum sn, TickType_t *xLastWaitTime );
+
+static void vTcpServerInitialise( void )
 {
     portENTER_CRITICAL();
     {
-        xRxedCmds = xQueueCreate( uxQueueLength, (unsigned portBASE_TYPE ) sizeof( xTcpCmdType_t ) );
-        xDataForTx = xQueueCreate( uxQueueLength, (unsigned portBASE_TYPE ) sizeof( xTcpDataType_t ) );
-
         vInitSPI();
 
-        /* Wiznet chip setup time */
+        /* Wiznet chip setup time. */
         _delay_ms(2000);
         
+        struct wiz_NetInfo_t network_config = 
         {
-            struct wiz_NetInfo_t network_config = 
-            {
-                { tcpMAC },
-                { tcpIP },
-                { tcpSUBNET },
-                { tcpGATEWAY },
-                { tcpDNS },
-                2
-            };
+            { tcpMAC },
+            { tcpIP },
+            { tcpSUBNET },
+            { tcpGATEWAY },
+            { tcpDNS },
+            2
+        };
 
-            uint8_t txsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
-            uint8_t rxsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
-            
-            /* Initialize network configuration and buffer size */
-            wizchip_init( txsize, rxsize );
-            wizchip_setnetinfo( &network_config );
+        uint8_t txsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
+        uint8_t rxsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
+        
+        /* Initialize network configuration and buffer size. */
+        wizchip_init( txsize, rxsize );
+        wizchip_setnetinfo( &network_config );
     }
     portEXIT_CRITICAL();
-
-    return;
 }
 
-/*
-signed portBASE_TYPE xTcpGetCmd( void )
+static int8_t serverStatus( eSocketNum sn, TickType_t *xLastWaitTime )
 {
+int8_t ret;
 
-}
+    switch( getSn_SR(sn) )
+    {
+        case SOCK_ESTABLISHED:
+            if( getSn_IR( 0 ) & Sn_IR_CON )
+            {
+                setSn_IR( 0, Sn_IR_CON );
+            }
+            writeString("Socket established\n");
+            return 2;
+            break;
+        case SOCK_CLOSE_WAIT:
+            if( ( ret = disconnect( 0 ) ) != SOCK_OK ) return ret;
+            writeString("Socket close wait\n");
+            break;
+        case SOCK_INIT:
+            if( ( ret = listen( 0 ) ) != SOCK_OK ) return ret;
+            writeString("Socket init... waiting for connection\n");
+            //vTaskDelayUntil( xLastWaitTime, tcpDELAY_TIME );
+            break;
+        case SOCK_CLOSED:
+            if( ( ret = socket( 0, Sn_MR_TCP, 8080, 0x00 ) ) != 0 ) return ret;
+            writeString("Socket closed\n");
+            break;
+        default:
+            break;
+    }
+    return 1;
+} 
 
-signed portBASE_TYPE xTcpPutData( void )
+portTASK_FUNCTION( vTcpRxTask, pvParameters )
 {
+TickType_t xLastWaitTime;
 
+    xLastWaitTime = xTaskGetTickCount();
+
+    for( ;; )
+    {
+        if( serverStatus( 0, &xLastWaitTime ) == 2 )
+        {
+            /* Check if a recv has occured otherwise block */
+            if( !( getSn_IR(0) & Sn_IR_RECV ) ) 
+            {
+                writeString("Delaying 20 ticks -> no receive\n");
+                vTaskDelayUntil( &xLastWaitTime, tcpDELAY_TIME );
+                continue;
+            }
+
+            /* Read in wiz rx buffer and process commands */
+            writeString("Received some data!\n");
+        }
+    }
 }
-*/
 
 int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 {
@@ -130,20 +175,6 @@ int32_t tcps(uint8_t sn, uint8_t* buf, uint16_t port)
                 ret = recv(sn, buf, size);
 
                 if(ret <= 0) return ret;      // check SOCKERR_BUSY & SOCKERR_XXX. For showing the occurrence of SOCKERR_BUSY.
-                size = (uint16_t) ret;
-                sentsize = 0;
-
-                while(size != sentsize)
-                {
-                    writeNumChar("First char received: ", *buf, 10);
-                    ret = send(sn, buf+sentsize, size-sentsize);
-                    if(ret < 0)
-                    {
-                        close(sn);
-                        return ret;
-                    }
-                    sentsize += ret; // Don't care SOCKERR_BUSY, because it is zero.
-                }
             }
             break;
         case SOCK_CLOSE_WAIT :
@@ -159,58 +190,3 @@ int32_t tcps(uint8_t sn, uint8_t* buf, uint16_t port)
     }
     return 1;
 }
-
-/*
-int main()
-{
-    initUART();
-    initSPI();
-    //initTCNT0();
-    DDRB |= (1 << 0);
-
-    uint8_t buf[1000];
-
-    struct wiz_NetInfo_t network_config = 
-    {
-        {MAC},
-        {IP},
-        {SUBNET},
-        {GATEWAY},
-        {DNS},
-        2
-    };
-
-    struct wiz_NetInfo_t temp;
-
-    uint8_t txsize[8] = {1, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t rxsize[8] = {1, 0, 0, 0, 0, 0, 0, 0};
-
-    //setup delay
-    _delay_ms(2000);
-
-    writeNumChar("Init return: ", wizchip_init(txsize, rxsize), 10);
-    wizchip_setnetinfo(&network_config);
-    wizchip_getnetinfo(&temp);
-
-    writeNumChar("ip[0]: ", temp.ip[0], 10);
-    writeNumChar("ip[1]: ", temp.ip[1], 10);
-    writeNumChar("ip[2]: ", temp.ip[2], 10);
-    writeNumChar("ip[3]: ", temp.ip[3], 10);
-
-    writeNumChar("version: ", getVERSIONR(), 16);
-    writeNumShort("retry count: ", getRTR(), 10);
-
-    sei(); //enable global interrupts
-
-    while(1)
-    {
-        //disableTCNT0();
-        loopback_tcps(0, buf, 8080);
-        writeNumChar("Socket 0 SR: ", getSn_SR(0), 16);
-        //enableTCNT0();
-        _delay_ms(500);
-    }
-
-    return 0;
-}
-*/

@@ -59,7 +59,8 @@ typedef struct
 #define LOOPBACK_MAIN_NOBLOCK    0
 #define LOOPBACK_MODE   LOOPBACK_MAIN_NOBLOCK
 
-void vTcpServerInitialise( unsigned portBASE_TYPE uxQueueLength );
+//signed portBASE_TYPE xTcpGetCmd( xTcpCmdType_t *pxRxedCmd, TickType_t xBlockTime );
+portTASK_FUNCTION_PROTO( vTcpRxTask, pvParameters );
 
 // TCP server loopback test example
 int32_t loopback_tcps( uint8_t sn, uint8_t* buf, uint16_t port );
