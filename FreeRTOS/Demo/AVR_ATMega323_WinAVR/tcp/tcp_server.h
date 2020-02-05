@@ -68,6 +68,8 @@ int32_t loopback_tcps( uint8_t sn, uint8_t* buf, uint16_t port );
 // TCP server
 int32_t tcps( uint8_t sn, uint8_t* buf, uint16_t port );
 
+void vTcpServerInitialise(void);
+
 #ifdef __cplusplus
 }
 #endif

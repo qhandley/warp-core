@@ -83,51 +83,21 @@ int main( void )
     writeString("inside main!");
 
     /* Setup TCP server for communication */
-    //vTcpServerInitialise( 2 );
-    
-    /*
-    struct wiz_NetInfo_t network_config = 
-    {
-        { tcpMAC },
-        { tcpIP },
-        { tcpSUBNET },
-        { tcpGATEWAY },
-        { tcpDNS },
-        2
-    };
+    vTcpServerInitialise();
+	
+    writeString("Passed Init!");
+	struct wiz_NetInfo_t temp;
+    wizchip_getnetinfo(&temp);
+	writeNumShort("IP: ", temp.ip[0], 10);    
 
-    struct wiz_NetInfo_t temp;
+	portBASE_TYPE ret = xTaskCreate( vTcpRxTask, "TcpRx", 512, NULL, mainTCP_RX_TASK_PRIORITY, NULL);
+    writeNumChar("Task Create: ", ret, 10);
 
-    uint8_t txsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
-    uint8_t rxsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
-
-    wizchip_setnetinfo( &network_config );
-    wizchip_getnetinfo( &temp );
-
-    wizchip_init(txsize, rxsize);
-
-    BaseType_t status = 0;
-
-    _delay_ms(2000);
-    writeNumChar("Version: ", (uint8_t) getVERSIONR(), 10);
-    _delay_ms(1000);
-    writeNumShort("Retry Count: ", getRTR(), 10);
-    _delay_ms(1000);
-    writeNumChar("ip[0]: ", temp.ip[0], 10);
-    _delay_ms(1000);
-    writeNumChar("rx 0 buf size: ", getSn_RXBUF_SIZE(0), 10);
-    */
-
-	/* Create the tasks */
-	//xTaskCreate( vBlinkyFunction, "Blink", 128, NULL, 3, NULL );
-	//status = xTaskCreate( vBlinkyFunction, "TCP", 128, NULL, mainTCP_RX_TASK_PRIORITY, NULL );
-
-    //writeNumChar("Status: ", (uint8_t) status, 10);
 
 	/* In this port, to use preemptive scheduler define configUSE_PREEMPTION
 	as 1 in portmacro.h.  To use the cooperative scheduler define
 	configUSE_PREEMPTION as 0. */
-	//vTaskStartScheduler();
+	vTaskStartScheduler();
 
 	return 0;
 }
@@ -170,7 +140,8 @@ static void vTcpServerLoopback( void *pvParameters )
 
 void vApplicationIdleHook( void )
 {
-    PORTB ^= 0x20;
-    _delay_ms(200);
+    //PORTB ^= 0x20;
+    //_delay_ms(200);
+	writeString("Idle");
 }
 

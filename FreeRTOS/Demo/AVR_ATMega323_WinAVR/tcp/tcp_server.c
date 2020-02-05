@@ -20,10 +20,10 @@
 #define tcpDELAY_TIME           ( ( const TickType_t ) 100 )
 
 /* Static prototypes for methods in this file. */
-static void vTcpServerInitialise( void );
+void vTcpServerInitialise( void );
 static int8_t serverStatus( eSocketNum sn, TickType_t *xLastWaitTime );
 
-static void vTcpServerInitialise( void )
+void vTcpServerInitialise( void )
 {
     portENTER_CRITICAL();
     {
@@ -73,7 +73,7 @@ int8_t ret;
         case SOCK_INIT:
             if( ( ret = listen( 0 ) ) != SOCK_OK ) return ret;
             writeString("Socket init... waiting for connection\n");
-            //vTaskDelayUntil( xLastWaitTime, tcpDELAY_TIME );
+            vTaskDelayUntil( xLastWaitTime, tcpDELAY_TIME );
             break;
         case SOCK_CLOSED:
             if( ( ret = socket( 0, Sn_MR_TCP, 8080, 0x00 ) ) != 0 ) return ret;
@@ -93,6 +93,7 @@ TickType_t xLastWaitTime;
 
     for( ;; )
     {
+		//writeString("looping\n");
         if( serverStatus( 0, &xLastWaitTime ) == 2 )
         {
             /* Check if a recv has occured otherwise block */
