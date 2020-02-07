@@ -10,17 +10,17 @@
 #define F_CPU           16000000
 #include <util/delay.h>
 
-/* TCP include files. */
+/* Application include files. */
 #include "tcp_server.h"
 #include "socket.h"
-
-/* UART include file. */
 #include "uart.h"
+#include "jsmn.h"
 
 #define tcpDELAY_TIME           ( ( const TickType_t ) 100 )
 
-/* Static prototypes for methods in this file. */
 void vTcpServerInitialise( void );
+
+/* Static prototypes for methods in this file. */
 static int8_t serverStatus( eSocketNum sn, TickType_t *xLastWaitTime );
 
 void vTcpServerInitialise( void )
@@ -87,8 +87,17 @@ int8_t ret;
 
 portTASK_FUNCTION( vTcpRxTask, pvParameters )
 {
+int32_t ret;
+uint16_t size = 0;
+uint8_t buf[100];
+
+int8_t r;
+jsmn_parser p;
+jsmntok_t t;
+
 TickType_t xLastWaitTime;
 
+    jsmn_init(&p);
     xLastWaitTime = xTaskGetTickCount();
 
     for( ;; )
@@ -106,6 +115,16 @@ TickType_t xLastWaitTime;
 
             /* Read in wiz rx buffer and process commands */
             writeString("Received some data!\n");
+
+            if((size = getSn_RX_RSR(0)) > 0) // Don't need to check SOCKERR_BUSY because it doesn't not occur.
+            {
+                if(size > DATA_BUF_SIZE) size = DATA_BUF_SIZE; // clips size if larger that data buffer
+                ret = recv(0, buf, size);
+
+                if(ret <= 0) continue;  // check SOCKERR_BUSY & SOCKERR_XXX. For showing the occurrence of SOCKERR_BUSY.
+
+                r = jsmn_parse(&p, (const char *)buf, sizeof(buf), &t, sizeof(t));
+            }
         }
     }
 }
