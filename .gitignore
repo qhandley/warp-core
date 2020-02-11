@@ -5,3 +5,7 @@
 *.map
 *.hex
 *.srec
+*.d
+*.eep
+*.sym
+*.lss
