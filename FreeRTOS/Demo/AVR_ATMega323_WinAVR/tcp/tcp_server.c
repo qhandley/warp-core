@@ -3,11 +3,11 @@
 #include "task.h"
 
 /* AVR include files. */
+#define F_CPU       16000000
 #include <stdlib.h>
 #include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#define F_CPU           16000000
 #include <util/delay.h>
 
 /* Application include files. */

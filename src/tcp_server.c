@@ -2,43 +2,55 @@
 #include <stdlib.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <string.h>
 #include <util/delay.h>
 
 #include "tcp_server.h"
 #include "socket.h"
-#include "uart.h"
+
+#define USART_BAUDRATE 9600
+#define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
 
 void initSPI()
 {
-    DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2); //sck, mosi, ss outputs
+    //DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2); //sck, mosi, ss outputs
+    DDRB |= (1 << PB1) | (1 << PB2) | (1 << PB6); //sck, mosi, ss outputs
     SPCR |= (1 << SPE) | (1 << MSTR);
 }
 
-void initTCNT0()
+void USART_Init( void )
 {
-    TIMSK0 |= (1 << TOIE0); //enable overflow interrupt 
-    TCCR0B |= (1 << CS02) | (1 << CS00); //1024 prescaling
+    DDRD |= (1<<PD3);
+
+    unsigned int baud = BAUD_PRESCALE;
+
+    UBRR1H = (unsigned char) (baud>>8);
+    UBRR1L = (unsigned char) baud;
+
+    UCSR1B = (1<<RXEN1) | (1<<TXEN1);
+    UCSR1C = (1<<USBS1) | (3<<UCSZ10);
 }
 
-void disableTCNT0()
+uint8_t getByte(void)
 {
-    TCCR0B = 0;
+    // Check to see if something was received
+    while (!(UCSR1A & _BV(RXC1)));
+    return (uint8_t) UDR1;
 }
 
-void enableTCNT0()
+void putByte(unsigned char data)
 {
-    TCCR0B |= (1 << CS02) | (1 << CS00); //1024 prescaling
+    // Stay here until data buffer is empty
+    while (!(UCSR1A & _BV(UDRE1)));
+    UDR1 = (unsigned char) data;
 }
 
-ISR(TIMER0_OVF_vect)
+void writeString(char *str)
 {
-    uint8_t s0_ir = getSn_IR(0);
-
-    if(!bit_is_clear(s0_ir, 2))
+    while (*str != '\0')
     {
-        writeString("recv interrupt received!\r\n");
-        setSn_IR(0, (s0_ir & (1 << 2))); //clear interrupt
-        PORTB ^= (1 << 0);
+        putByte(*str);
+        ++str;
     }
 }
 
@@ -50,6 +62,7 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
     switch(getSn_SR(sn))
     {
         case SOCK_ESTABLISHED:
+            writeString("Established\n");
             if(getSn_IR(sn) & Sn_IR_CON)
             {
                 setSn_IR(sn,Sn_IR_CON);
@@ -65,7 +78,6 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 
                 while(size != sentsize)
                 {
-                    writeNumChar("First char received: ", *buf, 10);
                     ret = send(sn, buf+sentsize, size-sentsize);
                     if(ret < 0)
                     {
@@ -81,9 +93,11 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
             break;
         case SOCK_INIT :
             if( (ret = listen(sn)) != SOCK_OK) return ret;
+            writeString("Init\n");
             break;
         case SOCK_CLOSED:
             if( (ret = socket(sn, Sn_MR_TCP, port, 0x00)) != sn) return ret;
+            writeString("Closed\n");
         default:
             break;
     }
@@ -92,12 +106,14 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 
 int main()
 {
-    initUART();
+    USART_Init();
     initSPI();
-    //initTCNT0();
-    DDRB |= (1 << 0);
 
-    uint8_t buf[1000];
+    // Built-in LED
+    DDRD |= (1 << PD4);
+
+    uint8_t buf[100];
+    char buffer[10];
 
     struct wiz_NetInfo_t network_config = 
     {
@@ -117,27 +133,41 @@ int main()
     //setup delay
     _delay_ms(2000);
 
-    writeNumChar("Init return: ", wizchip_init(txsize, rxsize), 10);
+    wizchip_init(txsize, rxsize);
     wizchip_setnetinfo(&network_config);
     wizchip_getnetinfo(&temp);
 
-    writeNumChar("ip[0]: ", temp.ip[0], 10);
-    writeNumChar("ip[1]: ", temp.ip[1], 10);
-    writeNumChar("ip[2]: ", temp.ip[2], 10);
-    writeNumChar("ip[3]: ", temp.ip[3], 10);
+    uint8_t version = 0;
+    uint16_t rcr = 0;
+    uint8_t phycfgr = 0;
 
-    writeNumChar("version: ", getVERSIONR(), 16);
-    writeNumShort("retry count: ", getRTR(), 10);
-
-    sei(); //enable global interrupts
+    PORTD |= (1 << PD4);
 
     while(1)
     {
-        //disableTCNT0();
-        loopback_tcps(0, buf, 8080);
-        writeNumChar("Socket 0 SR: ", getSn_SR(0), 16);
-        //enableTCNT0();
-        _delay_ms(500);
+        version = getVERSIONR();    
+        rcr = getRCR();    
+
+        phycfgr = getPHYCFGR();
+        itoa(phycfgr, buffer, 16);
+        writeString(buffer);
+
+        _delay_ms(50);
+        setPHYCFGR(0xF8);
+
+        phycfgr = getPHYCFGR();
+        itoa(phycfgr, buffer, 16);
+        writeString(buffer);
+
+        //itoa(temp.ip[0], buffer, 10);
+        //writeString(buffer);
+
+        int8_t ret = loopback_tcps(0, buf, 8080);
+
+        //itoa(ret, buffer, 10);
+        //writeString(buffer);
+
+        _delay_ms(1000);
     }
 
     return 0;
