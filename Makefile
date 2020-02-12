@@ -1,5 +1,5 @@
 PRG            = tcp_server
-OBJ            = $(PRG).o socket.o wizchip_conf.o w5500.o uart.o #jsmn.o 
+OBJ            = $(PRG).o socket.o wizchip_conf.o w5500.o uart.o 
 
 VPATH 		   = src:lib/ioLibrary_Driver/Ethernet:lib/ioLibrary_Driver/Ethernet/W5500
 INC	           = -I lib/ioLibrary_Driver/Ethernet
@@ -21,7 +21,7 @@ all: $(PRG).elf lst text eeprom
 $(PRG).elf: $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-tcp_server.o: tcp_server.c tcp_server.h
+tcp_server.o: tcp_server.c tcp_server.h jsmn.h
 	$(CC) $(CFLAGS) -c $<
  
 socket.o: socket.c socket.h
@@ -36,7 +36,7 @@ w5500.o: w5500.c w5500.h
 uart.o: uart.c uart.h
 	$(CC) $(CFLAGS) -c $<
 
-#jsmn.o: jsmn.h
+#jsmn.h.gch: jsmn.h
 #	$(CC) $(CFLAGS) -c $<
 
 clean: 

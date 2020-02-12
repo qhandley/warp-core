@@ -25,6 +25,8 @@
 #define JSMN_H
 
 #include <stddef.h>
+#include <string.h>
+#include <avr/io.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +61,8 @@ enum jsmnerr {
   /* The string is not a full JSON packet, more bytes expected */
   JSMN_ERROR_PART = -3
 };
+
+
 
 /**
  * JSON token description.
@@ -467,5 +471,101 @@ JSMN_API void jsmn_init(jsmn_parser *parser) {
 #ifdef __cplusplus
 }
 #endif
+
+struct json_object{
+    uint8_t type;
+    char* name;
+    union _data {
+        int integer;
+        float decimal;
+        char* string;
+        } data;
+    };
+
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
+  if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
+      strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
+    return 0;
+  }
+  return -1;
+}
+
+static uint8_t json_serialize(struct json_object passed[], uint8_t num_objects, char* json_string){
+    uint8_t pointer = 0;
+    uint8_t temp_pointer = 0;
+	json_string[pointer++] = '{';
+    char temp[10];
+	for (int i = 0; i < num_objects; i++){
+	    json_string[pointer++] = '"';
+        for(int j = 0; j < strlen(passed[i].name); j++){
+            json_string[pointer++] = passed[i].name[j];
+        }
+	    json_string[pointer++] = '"';
+	    json_string[pointer++] = ':';
+	    json_string[pointer++] = ' ';
+		switch(passed[i].type){			
+            case 0:
+                itoa(passed[i].data.integer,temp, 10);
+                for(int j = 0; j < strlen(temp); j++){
+                    json_string[pointer++] = temp[j];
+                }
+                break;
+            case 1:
+                temp_pointer = 0;
+                dtostrf(passed[i].data.decimal, 10, 1, temp);
+                while(temp[temp_pointer] == ' '){
+                    temp_pointer += 1;
+                }
+                        
+                for(int j = 0; j < strlen(temp) - temp_pointer; j++){
+                    json_string[pointer++] = temp[temp_pointer + j];
+                }
+                break;
+            case 2:
+	            json_string[pointer++] = '"';
+                for(int j = 0; j < strlen(passed[i].data.string); j++){
+                    json_string[pointer++] = passed[i].data.string[j];
+                }
+	            json_string[pointer++] = '"';
+                break;
+
+		}	
+        if(i+1 < num_objects){
+	        json_string[pointer++] = ',';
+        }
+	}
+	json_string[pointer++] = '}';
+	json_string[pointer++] = 0;
+    
+
+	return 0;
+}	
+static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r, char *names[], uint8_t num_names){
+	if (r < 0){
+		writeString("Failed to parse JSON");
+        return 1;
+	}
+	for (int i = 1; i < r; i++){
+        for(int index = 0; index < num_names; index++){
+            if (jsoneq(string, &t[i], names[index]) == 0) {
+                uint8_t token_len = t[i +1].end - t[i +1].start;
+                char token[token_len+1];
+                for(int j = 0; j < token_len; j++){
+                    token[j] = *(string + t[i +1].start + j);
+                }
+                token[token_len] = 0;
+                char temp[20];
+                itoa(token_len,temp,10);
+                writeString(temp);
+                writeString("\n");
+                writeString(token);
+                writeString("\n");
+                //writeString(JSON_STRING + t[i + 1].start);
+            }
+        }
+    }
+    return 0;
+}
+ 
 
 #endif /* JSMN_H */
