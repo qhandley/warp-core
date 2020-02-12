@@ -3,11 +3,85 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <string.h>
+#include <math.h>
 
 #include "tcp_server.h"
 #include "socket.h"
 #include "uart.h"
+#include "jsmn.h"
 
+static const char *JSON_STRING = "{\"cmd\": \"Launch\", \"cmd\": 12, \"incorrect\": 5}";
+
+struct json_object{
+    uint8_t type;
+    char* name;
+    union _data {
+        int integer;
+        float decimal;
+        char* string;
+        } data;
+    };
+
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
+  if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
+      strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
+    return 0;
+  }
+  return -1;
+}
+
+static uint8_t json_serialize(struct json_object passed[], uint8_t num_objects, char* json_string){
+    uint8_t pointer = 0;
+    uint8_t temp_pointer = 0;
+	json_string[pointer++] = '{';
+    char temp[10];
+	for (int i = 0; i < num_objects; i++){
+	    json_string[pointer++] = '"';
+        for(int j = 0; j < strlen(passed[i].name); j++){
+            json_string[pointer++] = passed[i].name[j];
+        }
+	    json_string[pointer++] = '"';
+	    json_string[pointer++] = ':';
+	    json_string[pointer++] = ' ';
+		switch(passed[i].type){			
+            case 0:
+                itoa(passed[i].data.integer,temp, 10);
+                for(int j = 0; j < strlen(temp); j++){
+                    json_string[pointer++] = temp[j];
+                }
+                break;
+            case 1:
+                temp_pointer = 0;
+                dtostrf(passed[i].data.decimal, 10, 1, temp);
+                while(temp[temp_pointer] == ' '){
+                    temp_pointer += 1;
+                }
+                        
+                for(int j = 0; j < strlen(temp) - temp_pointer; j++){
+                    json_string[pointer++] = temp[temp_pointer + j];
+                }
+                break;
+            case 2:
+	            json_string[pointer++] = '"';
+                for(int j = 0; j < strlen(passed[i].data.string); j++){
+                    json_string[pointer++] = passed[i].data.string[j];
+                }
+	            json_string[pointer++] = '"';
+                break;
+
+		}	
+        if(i+1 < num_objects){
+	        json_string[pointer++] = ',';
+        }
+	}
+	json_string[pointer++] = '}';
+	json_string[pointer++] = 0;
+    
+
+	return 0;
+}
+    
 void initSPI()
 {
     DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2); //sck, mosi, ss outputs
@@ -95,10 +169,69 @@ int main()
     initUART();
     initSPI();
     //initTCNT0();
-    DDRB |= (1 << 0);
+    DDRB |= 0xff;
+	_delay_ms(1000);
+    PORTB ^= 0xff;
+	_delay_ms(1000);
+    PORTB ^= 0xff;
+	
+	_delay_ms(1000);
+	writeString("Started\n");
 
-    uint8_t buf[1000];
+    struct json_object test1, test2, test3;
+    
+    test1.type = 0;
+    test1.name = "int";
+    test1.data.integer = 5;
+    
+    test2.type = 1;
+    test2.name = "float";
+    test2.data.decimal = 5.2;
 
+    test3.type = 2;
+    test3.name = "string";
+    test3.data.string = "this is a string";
+    
+    char string[128];
+    struct json_object topass[10];
+    topass[0] = test1;
+    topass[1] = test2;
+    topass[2] = test3;
+    json_serialize(topass, 3, string);
+
+    writeString(string);
+    
+    return 0;
+
+    uint8_t buf[128];
+	int r;
+	jsmn_parser p;
+	jsmntok_t t[128];
+
+	jsmn_init(&p);
+	r = jsmn_parse(&p, JSON_STRING, strlen(JSON_STRING), t, sizeof(t)/sizeof(t[0]));
+	if (r < 0){
+		writeString("Failed to parse JSON");
+	} 
+	
+	for (int i = 1; i < r; i++){
+		if (jsoneq(JSON_STRING, &t[i], "cmd") == 0) {
+			uint8_t token_len = t[i +1].end - t[i +1].start;
+			char token[token_len+1];
+			for(int j = 0; j < token_len; j++){
+				token[j] = *(JSON_STRING + t[i +1].start + j);
+			}
+			token[token_len] = 0;
+			char temp[20];
+			itoa(token_len,temp,10);
+			writeString(temp);
+			writeString("\n");
+			writeString(token);
+			writeString("\n");
+			//writeString(JSON_STRING + t[i + 1].start);
+		}
+	}
+	return 0;
     struct wiz_NetInfo_t network_config = 
     {
         {MAC},

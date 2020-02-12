@@ -1,5 +1,5 @@
 PRG            = tcp_server
-OBJ            = $(PRG).o socket.o wizchip_conf.o w5500.o uart.o
+OBJ            = $(PRG).o socket.o wizchip_conf.o w5500.o uart.o #jsmn.o 
 
 VPATH 		   = src:lib/ioLibrary_Driver/Ethernet:lib/ioLibrary_Driver/Ethernet/W5500
 INC	           = -I lib/ioLibrary_Driver/Ethernet
@@ -35,6 +35,9 @@ w5500.o: w5500.c w5500.h
 
 uart.o: uart.c uart.h
 	$(CC) $(CFLAGS) -c $<
+
+#jsmn.o: jsmn.h
+#	$(CC) $(CFLAGS) -c $<
 
 clean: 
 	rm -rf *.o $(PRG).elf *.bin *.hex *.srec *.bak  
