@@ -26,49 +26,20 @@ typedef enum
     tcpSOCKET7
 } eSocketNum;
 
-typedef struct
-{
-    uint8_t cmd;
-} xTcpCmdType_t;
-
-typedef struct
-{
-    uint8_t data;
-} xTcpDataType_t;
-
-
 #define vInitSPI()                                          \
 {                                                           \
     DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2);           \
     SPCR |= (1 << SPE) | (1 << MSTR);                       \
 }                                                           
 
-// #pragma message("Wizchip ID: " _WIZCHIP_ID_)
-
-/* Loopback test debug message printout enable */
-#define	_LOOPBACK_DEBUG_
-
-/* DATA_BUF_SIZE define for Loopback example */
 #ifndef DATA_BUF_SIZE
-    #define DATA_BUF_SIZE          ( 1024 )
+    #define DATA_BUF_SIZE       ( 1024 )
 #endif
 
-/************************/
-/* Select LOOPBACK_MODE */
-/************************/
-#define LOOPBACK_MAIN_NOBLOCK    0
-#define LOOPBACK_MODE   LOOPBACK_MAIN_NOBLOCK
-
-//signed portBASE_TYPE xTcpGetCmd( xTcpCmdType_t *pxRxedCmd, TickType_t xBlockTime );
 portTASK_FUNCTION_PROTO( vTcpRxTask, pvParameters );
 
-// TCP server loopback test example
-int32_t loopback_tcps( uint8_t sn, uint8_t* buf, uint16_t port );
-
-// TCP server
-int32_t tcps( uint8_t sn, uint8_t* buf, uint16_t port );
-
-void vTcpServerInitialise(void);
+/* Function prototypes */
+void vTcpServerInit( void );
 
 #ifdef __cplusplus
 }

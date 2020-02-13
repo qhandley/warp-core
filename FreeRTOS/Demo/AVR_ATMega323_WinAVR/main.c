@@ -70,29 +70,13 @@ void vApplicationIdleHook( void );
 int main( void )
 {
     initUART();
-    vInitSPI();
     DDRB |= 0x20;
     
-    _delay_ms(1000);
-
-    PORTB |= 0x20;
-    _delay_ms(1000);
-    PORTB &= ~0x20;
-    _delay_ms(1000);
-
-    writeString("inside main!");
-
     /* Setup TCP server for communication */
-    vTcpServerInitialise();
+    vTcpServerInit();
 	
-    writeString("Passed Init!");
-	struct wiz_NetInfo_t temp;
-    wizchip_getnetinfo(&temp);
-	writeNumShort("IP: ", temp.ip[0], 10);    
-
-	portBASE_TYPE ret = xTaskCreate( vTcpRxTask, "TcpRx", 512, NULL, mainTCP_RX_TASK_PRIORITY, NULL);
+    portBASE_TYPE ret = xTaskCreate( vTcpRxTask, "TcpRx", 1024, NULL, mainTCP_RX_TASK_PRIORITY, NULL);
     writeNumChar("Task Create: ", ret, 10);
-
 
 	/* In this port, to use preemptive scheduler define configUSE_PREEMPTION
 	as 1 in portmacro.h.  To use the cooperative scheduler define
