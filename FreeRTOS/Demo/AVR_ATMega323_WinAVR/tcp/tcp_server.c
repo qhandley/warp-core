@@ -18,11 +18,22 @@
 
 #define tcpDELAY_TIME           ( ( const TickType_t ) 100 )
 
+portBASE_TYPE xServerConnEstablished = pdFALSE;
+
+/* TCP server tasks prototype */
+portTASK_FUNCTION_PROTO( vTCPServerTask, pvParameters );
 
 /* Static prototypes for methods in this file. */
-static int8_t serverStatus( eSocketNum sn, TickType_t *xLastWaitTime );
+static void vTCPServerInit( void );
+static portBASE_TYPE xServerStatus( eSocketNum sn, TickType_t *xLastWaitTime );
 
-void vTcpServerInit( void )
+void vStartTCPServerTask( void )
+{
+    vTCPServerInit();
+    xTaskCreate( vTCPServerTask, "TCP", 1024, NULL, tcpTCP_SERVER_TASK_PRIORITY, NULL );
+}
+
+static void vTCPServerInit( void )
 {
     portENTER_CRITICAL();
     {
@@ -52,11 +63,11 @@ void vTcpServerInit( void )
     portEXIT_CRITICAL();
 }
 
-static int8_t serverStatus( eSocketNum sn, TickType_t *xLastWaitTime )
+static portBASE_TYPE xServerStatus( eSocketNum sn, TickType_t *xLastWaitTime )
 {
 int8_t ret;
 
-    switch( getSn_SR(sn) )
+    switch( getSn_SR( sn ) )
     {
         /* Socket connection established with peer - SYN packet received */
         case SOCK_ESTABLISHED:
@@ -65,13 +76,14 @@ int8_t ret;
                 /* Clear CON interrupt bit issued from successful connection */
                 setSn_IR( sn, Sn_IR_CON );
             }
+            xServerConnEstablished = pdTRUE;
             writeString("Socket established on port 8080\n");
-            return 2;
             break;
 
         /* Socket n received disconnect-request (FIN packet) from connected peer */
         case SOCK_CLOSE_WAIT:
             if( ( ret = disconnect( sn ) ) != SOCK_OK ) return ret;
+            xServerConnEstablished = pdFALSE;
             writeString("Closing socket...\n");
             break;
 
@@ -79,12 +91,11 @@ int8_t ret;
         case SOCK_INIT:
             if( ( ret = listen( sn ) ) != SOCK_OK ) return ret;
             writeString("Socket initialized... listening for connection\n");
-            vTaskDelayUntil( xLastWaitTime, tcpDELAY_TIME );
             break;
 
          /* Socket n is closed, configure TCP server for socket n on port 8080 */
         case SOCK_CLOSED:
-            if( ( ret = socket( sn, Sn_MR_TCP, 8080, 0x00 ) ) != 0 ) return ret;
+            if( ( ret = socket( sn, Sn_MR_TCP, 8080, 0x00 ) ) != sn ) return ret;
             writeString("Socket closed... opening\n");
             break;
 
@@ -94,11 +105,15 @@ int8_t ret;
     return 1;
 } 
 
-portTASK_FUNCTION( vTcpRxTask, pvParameters )
+portTASK_FUNCTION( vTCPServerTask, pvParameters )
 {
+    /* Remove compiler warning */
+    ( void ) pvParameters;
+
 int32_t ret;
 uint16_t size = 0;
 uint8_t buf[100];
+portBASE_TYPE status;
 
 int8_t r;
 jsmn_parser p;
@@ -111,7 +126,9 @@ TickType_t xLastWaitTime;
 
     for( ;; )
     {
-        if( serverStatus( 0, &xLastWaitTime ) == 2 )
+        status = xServerStatus( 0, &xLastWaitTime );
+
+        if( xServerConnEstablished == pdTRUE )
         {
             /* Check if a recv has occured otherwise block */
             if( ( getSn_IR(0) & Sn_IR_RECV ) ) 
@@ -119,10 +136,10 @@ TickType_t xLastWaitTime;
                 /* Read in wiz rx buffer and process commands */
                 writeString("Received some data!\n");
 
-                if((size = getSn_RX_RSR(0)) > 0) // Don't need to check SOCKERR_BUSY because it doesn't not occur.
+                if( (size = getSn_RX_RSR(0)) > 0) // Don't need to check SOCKERR_BUSY because it doesn't not occur.
                 {
                     if(size > DATA_BUF_SIZE) size = DATA_BUF_SIZE; // clips size if larger that data buffer
-                    ret = recv(0, buf, size);
+                    ret = recv( 0, buf, size);
 
                     if(ret <= 0) continue;  // check SOCKERR_BUSY & SOCKERR_XXX. For showing the occurrence of SOCKERR_BUSY.
 
