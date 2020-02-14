@@ -554,13 +554,8 @@ static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r, char *names[],
                     token[j] = *(string + t[i +1].start + j);
                 }
                 token[token_len] = 0;
-                char temp[20];
-                itoa(token_len,temp,10);
-                writeString(temp);
-                writeString("\n");
                 writeString(token);
                 writeString("\n");
-                //writeString(JSON_STRING + t[i + 1].start);
             }
         }
     }
