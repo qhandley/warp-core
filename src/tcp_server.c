@@ -132,7 +132,7 @@ int main()
 
     writeString(string);
     
-    char *names[3] = {"int", "float", "string"};
+    char *names[4] = {"int", "float", "string", "filler"};
 
     uint8_t buf[128];
 	jsmn_parser p;
@@ -140,7 +140,7 @@ int main()
 
 	jsmn_init(&p);
     int8_t r = jsmn_parse(&p, string, strlen(string), t, sizeof(t)/sizeof(t[0]));
-    json_extract(string, t, r, names, 3);
+    json_extract(string, t, r, names, sizeof(names));
     writeString("Ending\n");
 	return 0;
     struct wiz_NetInfo_t network_config = 
