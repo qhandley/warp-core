@@ -546,7 +546,7 @@ static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r, char *names[],
         return 1;
 	}
 	for (int i = 1; i < r; i++){
-        for(int index = 0; index < num_names; index++){
+        for(int index = 0; index <= num_names; index++){
             if (jsoneq(string, &t[i], names[index]) == 0) {
                 uint8_t token_len = t[i +1].end - t[i +1].start;
                 char token[token_len+1];
