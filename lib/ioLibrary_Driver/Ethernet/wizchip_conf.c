@@ -82,7 +82,7 @@ void 	  wizchip_cris_exit(void)          {}
 //void 	wizchip_cs_select(void)            {};
 void 	wizchip_cs_select(void)
 {
-    PORTB &= ~(1 << PB2); //pull SS low
+    PORTB &= ~(1 << PB6); //pull SS low
 }
 
 /**
@@ -93,7 +93,7 @@ void 	wizchip_cs_select(void)
 //void 	wizchip_cs_deselect(void)          {};
 void 	wizchip_cs_deselect(void)
 {
-    PORTB |= (1 << PB2); //pull SS high 
+    PORTB |= (1 << PB6); //pull SS high 
 }
 
 /**

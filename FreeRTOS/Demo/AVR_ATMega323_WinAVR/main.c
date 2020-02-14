@@ -61,7 +61,6 @@ tasks just use the idle priority. */
 
 /* Prototypes for tasks defined within this file. */ 
 static void vBlinkyFunction( void *pvParameters );
-static void vTcpServerLoopback( void *pvParameters );
 
 /* The idle hook is used to just blink LED. */
 void vApplicationIdleHook( void );
@@ -70,30 +69,11 @@ void vApplicationIdleHook( void );
 int main( void )
 {
     initUART();
-    vInitSPI();
     DDRB |= 0x20;
     
-    _delay_ms(1000);
-
-    PORTB |= 0x20;
-    _delay_ms(1000);
-    PORTB &= ~0x20;
-    _delay_ms(1000);
-
-    writeString("inside main!");
-
     /* Setup TCP server for communication */
-    vTcpServerInitialise();
+    vStartTCPServerTask();
 	
-    writeString("Passed Init!");
-	struct wiz_NetInfo_t temp;
-    wizchip_getnetinfo(&temp);
-	writeNumShort("IP: ", temp.ip[0], 10);    
-
-	portBASE_TYPE ret = xTaskCreate( vTcpRxTask, "TcpRx", 512, NULL, mainTCP_RX_TASK_PRIORITY, NULL);
-    writeNumChar("Task Create: ", ret, 10);
-
-
 	/* In this port, to use preemptive scheduler define configUSE_PREEMPTION
 	as 1 in portmacro.h.  To use the cooperative scheduler define
 	configUSE_PREEMPTION as 0. */
@@ -120,21 +100,6 @@ static void vBlinkyFunction( void *pvParameters )
         }
 
         vTaskDelay( xDelay );
-    }
-}
-
-static void vTcpServerLoopback( void *pvParameters )
-{
-	/* The parameters are not used. */
-	( void ) pvParameters;
-
-    uint8_t buf[64];
-
-    for( ;; )
-    {
-        loopback_tcps( 0, buf, 8080 );
-        _delay_ms(500);
-        writeNumChar("Socket 0 SR: ", getSn_SR( 0 ), 16);
     }
 }
 

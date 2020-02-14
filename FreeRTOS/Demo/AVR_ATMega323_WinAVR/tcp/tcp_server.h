@@ -7,12 +7,18 @@ extern "C" {
 
 #include <stdint.h>
 
-#define tcpMAC             0x44, 0xFF, 0xFF, 0x00, 0x00, 0x00
-#define tcpIP              192, 168, 1, 110 
-#define tcpSUBNET          255, 255, 255, 0 
-#define tcpGATEWAY         192, 168, 1, 1 
-#define tcpDNS             8, 8, 8, 8
-#define tcpPORT            8080
+#ifndef DATA_BUF_SIZE
+    #define DATA_BUF_SIZE       ( 1024 )
+#endif
+
+#define tcpTCP_SERVER_TASK_PRIORITY         ( tskIDLE_PRIORITY + 2)
+
+#define tcpMAC              0x44, 0xFF, 0xFF, 0x00, 0x00, 0x00
+#define tcpIP               192, 168, 1, 110 
+#define tcpSUBNET           255, 255, 255, 0 
+#define tcpGATEWAY          192, 168, 1, 1 
+#define tcpDNS              8, 8, 8, 8
+#define tcpPORT             8080
 
 typedef enum
 {
@@ -26,49 +32,13 @@ typedef enum
     tcpSOCKET7
 } eSocketNum;
 
-typedef struct
-{
-    uint8_t cmd;
-} xTcpCmdType_t;
-
-typedef struct
-{
-    uint8_t data;
-} xTcpDataType_t;
-
-
 #define vInitSPI()                                          \
 {                                                           \
     DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2);           \
     SPCR |= (1 << SPE) | (1 << MSTR);                       \
 }                                                           
 
-// #pragma message("Wizchip ID: " _WIZCHIP_ID_)
-
-/* Loopback test debug message printout enable */
-#define	_LOOPBACK_DEBUG_
-
-/* DATA_BUF_SIZE define for Loopback example */
-#ifndef DATA_BUF_SIZE
-    #define DATA_BUF_SIZE          ( 1024 )
-#endif
-
-/************************/
-/* Select LOOPBACK_MODE */
-/************************/
-#define LOOPBACK_MAIN_NOBLOCK    0
-#define LOOPBACK_MODE   LOOPBACK_MAIN_NOBLOCK
-
-//signed portBASE_TYPE xTcpGetCmd( xTcpCmdType_t *pxRxedCmd, TickType_t xBlockTime );
-portTASK_FUNCTION_PROTO( vTcpRxTask, pvParameters );
-
-// TCP server loopback test example
-int32_t loopback_tcps( uint8_t sn, uint8_t* buf, uint16_t port );
-
-// TCP server
-int32_t tcps( uint8_t sn, uint8_t* buf, uint16_t port );
-
-void vTcpServerInitialise(void);
+void vStartTCPServerTask( void );
 
 #ifdef __cplusplus
 }
