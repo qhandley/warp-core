@@ -148,7 +148,7 @@ TickType_t xLastWaitTime;
             }
             else
             {
-                writeString("Delaying 20 ticks -> no receive\n");
+                writeString("No rx... delaying\n");
                 vTaskDelayUntil( &xLastWaitTime, tcpDELAY_TIME );
             }
         }

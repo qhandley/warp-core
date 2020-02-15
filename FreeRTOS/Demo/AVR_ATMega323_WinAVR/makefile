@@ -31,7 +31,8 @@
 
 
 # MCU name
-MCU = atmega328p
+#MCU = atmega328p
+MCU = atmega32u4
 
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
@@ -52,21 +53,15 @@ WIZ_DIR = ../../../lib/ioLibrary_Driver/Ethernet
 
 SRC	= \
 main.c \
-ParTest/ParTest.c \
-serial/serial.c \
-regtest.c \
 tcp/tcp_server.c \
-uart.c \
+control/control.c \
+uart_32u4.c \
 $(SOURCE_DIR)/tasks.c \
 $(SOURCE_DIR)/queue.c \
 $(SOURCE_DIR)/list.c \
 $(SOURCE_DIR)/croutine.c \
 $(SOURCE_DIR)/portable/MemMang/heap_1.c \
 $(PORT_DIR)/port.c \
-$(DEMO_DIR)/crflash.c \
-$(DEMO_DIR)/integer.c \
-$(DEMO_DIR)/PollQ.c \
-$(DEMO_DIR)/comtest.c \
 $(WIZ_DIR)/socket.c \
 $(WIZ_DIR)/wizchip_conf.c \
 $(WIZ_DIR)/W5500/w5500.c
