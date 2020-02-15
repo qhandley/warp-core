@@ -14,7 +14,7 @@
 #include "tcp_server.h"
 #include "socket.h"
 #include "uart.h"
-#include "jsmn.h"
+#include "../jsmn.h"
 
 #define tcpDELAY_TIME           ( ( const TickType_t ) 100 )
 
@@ -117,7 +117,7 @@ portBASE_TYPE status;
 
 int8_t r;
 jsmn_parser p;
-jsmntok_t t;
+jsmntok_t t[16];
 
 TickType_t xLastWaitTime;
 
@@ -144,6 +144,7 @@ TickType_t xLastWaitTime;
                     if(ret <= 0) continue;  // check SOCKERR_BUSY & SOCKERR_XXX. For showing the occurrence of SOCKERR_BUSY.
 
                     r = jsmn_parse(&p, (const char *)buf, sizeof(buf), &t, sizeof(t));
+                    json_extract(buf, t, r); 
                 }
             }
             else
