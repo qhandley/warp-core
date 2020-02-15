@@ -476,7 +476,7 @@ JSMN_API void jsmn_init(jsmn_parser *parser) {
 
 extern QueueHandle_t xControlCmdQueue;
 
-struct json_object{
+struct jsmn_object{
     uint8_t type;
     char* name;
     union _data {
@@ -494,7 +494,7 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
   return -1;
 }
 
-static uint8_t json_serialize(struct json_object passed[], uint8_t num_objects, char* json_string){
+static uint8_t jsmn_serialize(struct json_object passed[], uint8_t num_objects, char* json_string){
     uint8_t pointer = 0;
     uint8_t temp_pointer = 0;
 	json_string[pointer++] = '{';
@@ -544,7 +544,7 @@ static uint8_t json_serialize(struct json_object passed[], uint8_t num_objects, 
 
 	return 0;
 }	
-static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r){
+static uint8_t jsmn_extract(char *string, jsmntok_t *t, int8_t r){
 	if (r < 0){
 		writeString("Failed to parse JSON");
         return 1;
