@@ -55,6 +55,7 @@
 /* UART functionality */
 #include "uart.h"
 
+
 /* Priority definitions for most of the tasks in the demo application.  Some
 tasks just use the idle priority. */
 #define mainTCP_RX_TASK_PRIORITY			( tskIDLE_PRIORITY + 3 )
@@ -72,6 +73,7 @@ int main( void )
     DDRB |= 0x20;
     
     /* Setup TCP server for communication */
+    
     vStartTCPServerTask();
 	
 	/* In this port, to use preemptive scheduler define configUSE_PREEMPTION

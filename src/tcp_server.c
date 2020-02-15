@@ -7,6 +7,7 @@
 
 #include "tcp_server.h"
 #include "socket.h"
+#include "jsmn.h"
 
 #define USART_BAUDRATE 9600
 #define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
@@ -17,7 +18,7 @@ void initSPI()
     DDRB |= (1 << PB1) | (1 << PB2) | (1 << PB6); //sck, mosi, ss outputs
     SPCR |= (1 << SPE) | (1 << MSTR);
 }
-
+/*
 void USART_Init( void )
 {
     DDRD |= (1<<PD3);
@@ -53,7 +54,7 @@ void writeString(char *str)
         ++str;
     }
 }
-
+*/
 int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 {
     int32_t ret;
@@ -106,15 +107,34 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 
 int main()
 {
-    USART_Init();
+    _delay_ms(1000);
+    //USART_Init();
     initSPI();
-
+    initUART();
+    
     // Built-in LED
     DDRD |= (1 << PD4);
+    writeString("Started");
+    char *string = "{\"CMD\": 1, \"CMD\": 2, \"CMD\": 3, \"CMD\": 4}";
 
+    
+    jsmn_parser p;
+  jsmntok_t t[128]; 
+  uint8_t array[10];
+
+  jsmn_init(&p);
+  int8_t r = jsmn_parse(&p, string, strlen(string), t,
+                 sizeof(t) / sizeof(t[0]));
+  json_extract(string, t, r, array);
+    char _temp[10];
+  for(int i = 0; i < 10; i++){
+      itoa(array[i],_temp,10);
+      writeString(_temp);
+      writeString("\n");
+  }
+  return 0;
     uint8_t buf[100];
     char buffer[10];
-
     struct wiz_NetInfo_t network_config = 
     {
         {MAC},

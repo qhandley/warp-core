@@ -27,6 +27,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <avr/io.h>
+#include "queue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -472,6 +473,8 @@ JSMN_API void jsmn_init(jsmn_parser *parser) {
 }
 #endif
 
+extern QueueHandle_t xQueue;
+
 struct json_object{
     uint8_t type;
     char* name;
@@ -540,6 +543,31 @@ static uint8_t json_serialize(struct json_object passed[], uint8_t num_objects, 
 
 	return 0;
 }	
+static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r, uint8_t commandArray[]){
+    uint8_t index = 0;
+    uint8_t size = sizeof(commandArray)/sizeof(commandArray[0]);
+	if (r < 0){
+		writeString("Failed to parse JSON");
+        return 1;
+	}
+	for (int i = 1; i < r; i++){
+        if (jsoneq(string, &t[i], "CMD") == 0) {
+            uint8_t token_len = t[i +1].end - t[i +1].start;
+            char token[token_len+1];
+            for(int j = 0; j < token_len; j++){
+                token[j] = *(string + t[i +1].start + j);
+            }
+            token[token_len] = 0;
+            commandArray[index++] = atoi(token);
+            //xQueueSend( _____, (void * ) &token, 0);
+        }
+    }
+    for (int i = index; i < size; i ++){
+        commandArray[i] = 255;
+    }
+    return 0;
+}
+/*
 static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r, char *names[], uint8_t num_names){
 	if (r < 0){
 		writeString("Failed to parse JSON");
@@ -561,6 +589,6 @@ static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r, char *names[],
     }
     return 0;
 }
- 
+*/ 
 
 #endif /* JSMN_H */
