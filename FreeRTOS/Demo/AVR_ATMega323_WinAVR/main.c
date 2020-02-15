@@ -56,7 +56,23 @@
 #include "control/control.h"
 
 /* UART functionality */
-#include "uart_32u4.h"
+//#include "uart_32u4.h"
+//
+#define USART_BAUDRATE 9600
+#define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
+
+void initUART( void )
+{
+    DDRD |= (1<<PD3);
+
+    unsigned int baud = BAUD_PRESCALE;
+
+    UBRR1H = (unsigned char) (baud>>8);
+    UBRR1L = (unsigned char) baud;
+
+    UCSR1B = (1<<RXEN1) | (1<<TXEN1);
+    UCSR1C = (1<<USBS1) | (3<<UCSZ10);
+}
 
 /* Prototypes for tasks defined within this file. */ 
 static void vBlinkyFunction( void *pvParameters );
@@ -69,7 +85,7 @@ int main( void )
 {
     initUART();
     DDRD |= (1 << PD4); //built-in led
-    
+
     /* Setup TCP server for communication */
     vStartTCPServerTask();
 
@@ -107,8 +123,7 @@ static void vBlinkyFunction( void *pvParameters )
 
 void vApplicationIdleHook( void )
 {
-    //PORTB ^= 0x20;
+    //PORTD ^= (1<<PD4);
     //_delay_ms(200);
-	writeString("Idle");
 }
 

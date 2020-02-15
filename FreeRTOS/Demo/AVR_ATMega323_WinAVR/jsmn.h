@@ -29,6 +29,8 @@
 #include <avr/io.h>
 #include "queue.h"
 
+#include "uart_32u4.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -546,7 +548,6 @@ static uint8_t json_serialize(struct json_object passed[], uint8_t num_objects, 
 }	
 static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r){
 	if (r < 0){
-		writeString("Failed to parse JSON");
         return 1;
 	}
 	for (int i = 1; i < r; i++){
@@ -557,7 +558,8 @@ static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r){
                 token[j] = *(string + t[i +1].start + j);
             }
             token[token_len] = 0;
-            xQueueSend( xControlCmdQueue, (void *) &token, 0);
+            unsigned char val = atoi(token);
+            xQueueSend( xControlCmdQueue, (void *) &val, 0);
         }
     }
     return 0;

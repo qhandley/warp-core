@@ -29,6 +29,7 @@ portTASK_FUNCTION( vControlTask, pvParameters )
 
 uint8_t i;
 portBASE_TYPE *command;
+portBASE_TYPE buf[10];
 
     for( ;; )
     {
@@ -36,10 +37,7 @@ portBASE_TYPE *command;
         {
            if( xQueueReceive( xControlCmdQueue, &( command ), ( TickType_t ) 20 ) )
            {
-                for( i=0; i<( *command ); i++)
-                {
-                    PORTD ^= (1 << PD4);   
-                }     
+                PORTD ^= (1 << PD4);
            } 
         }
     }

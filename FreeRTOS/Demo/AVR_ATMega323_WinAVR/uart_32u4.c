@@ -10,6 +10,7 @@
 #define USART_BAUDRATE 9600
 #define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
 
+/*
 void initUART( void )
 {
     DDRD |= (1<<PD3);
@@ -22,6 +23,7 @@ void initUART( void )
     UCSR1B = (1<<RXEN1) | (1<<TXEN1);
     UCSR1C = (1<<USBS1) | (3<<UCSZ10);
 }
+*/
 
 uint8_t getByte(void)
 {
