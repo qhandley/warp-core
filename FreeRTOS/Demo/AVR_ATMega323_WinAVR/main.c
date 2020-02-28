@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define F_CPU           16000000
+#define F_CPU           20000000
 #include <util/delay.h>
 
 #ifdef GCC_MEGA_AVR
@@ -56,7 +56,7 @@
 #include "control/control.h"
 
 /* UART functionality */
-//#include "uart_32u4.h"
+#include "uart_32u4.h"
 //
 #define USART_BAUDRATE 9600
 #define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
@@ -84,7 +84,17 @@ void vApplicationIdleHook( void );
 int main( void )
 {
     initUART();
-    DDRD |= (1 << PD4); //built-in led
+    DDRD |= (1 << PD0); //built-in led
+    writeString("Started");
+    PORTB |= (1 << PD0);
+    _delay_ms(500);
+    PORTB &= ~(1 << PD0);
+    _delay_ms(500);
+    PORTB |= (1 << PD0);
+    _delay_ms(500);
+    PORTB &= ~(1 << PD0);
+    _delay_ms(500);
+
 
     /* Setup TCP server for communication */
     vStartTCPServerTask();
@@ -96,6 +106,14 @@ int main( void )
 	as 1 in portmacro.h.  To use the cooperative scheduler define
 	configUSE_PREEMPTION as 0. */
 	vTaskStartScheduler();
+    PORTB |= (1 << PD0);
+    _delay_ms(500);
+    PORTB &= ~(1 << PD0);
+    _delay_ms(500);
+    PORTB |= (1 << PD0);
+    _delay_ms(500);
+    PORTB &= ~(1 << PD0);
+    _delay_ms(500);
 
 	return 0;
 }

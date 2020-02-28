@@ -3,7 +3,7 @@
 #include "task.h"
 
 /* AVR include files. */
-#define F_CPU       16000000
+#define F_CPU       20000000
 #include <stdlib.h>
 #include <stdio.h>
 #include <avr/io.h>
@@ -27,7 +27,7 @@ portTASK_FUNCTION_PROTO( vTCPServerTask, pvParameters );
 static void vTCPServerInit( void );
 static portBASE_TYPE xServerStatus( eSocketNum sn, TickType_t *xLastWaitTime );
 
-void vStartTCPServerTask( void )
+void vStartTCPServerTask()
 {
     vTCPServerInit();
     xTaskCreate( vTCPServerTask, "TCP", 1024, NULL, tcpTCP_SERVER_TASK_PRIORITY, NULL );
@@ -38,7 +38,7 @@ static void vTCPServerInit( void )
     portENTER_CRITICAL();
     {
         vInitSPI();
-
+        writeString("Init SPI\n");
         /* Wiznet chip setup time. */
         _delay_ms(2000);
         
@@ -58,8 +58,11 @@ static void vTCPServerInit( void )
         
         /* Initialize network configuration and buffer size. */
         wizchip_setnetinfo( &network_config );
+        writeString("Init SetInfo\n");
         wizchip_init( txsize, rxsize );
+        writeString("Init Wiz\n");
         setPHYCFGR(0xF8);
+        writeString("Done\n");
     }
     portEXIT_CRITICAL();
 }
@@ -126,6 +129,7 @@ TickType_t xLastWaitTime;
 
     for( ;; )
     {
+        writeString("looping\n");
         status = xServerStatus( 0, &xLastWaitTime );
 
         if( xServerConnEstablished == pdTRUE )

@@ -32,7 +32,8 @@
 
 # MCU name
 #MCU = atmega328p
-MCU = atmega32u4
+#MCU = atmega32u4
+MCU = atmega1284p
 
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex

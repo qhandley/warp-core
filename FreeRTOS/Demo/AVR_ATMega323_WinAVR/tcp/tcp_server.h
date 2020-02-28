@@ -34,7 +34,7 @@ typedef enum
 
 #define vInitSPI()                                          \
 {                                                           \
-    DDRB |= (1 << PB1) | (1 << PB2) | (1 << PB6);           \
+    DDRB |= (1 << PB3) | (1 << PB5) | (1 << PB7);           \
     SPCR |= (1 << SPE) | (1 << MSTR);                       \
 }                                                           
 

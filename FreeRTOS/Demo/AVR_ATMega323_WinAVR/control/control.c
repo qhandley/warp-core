@@ -37,7 +37,7 @@ portBASE_TYPE buf[10];
         {
            if( xQueueReceive( xControlCmdQueue, &( command ), ( TickType_t ) 20 ) )
            {
-                PORTD ^= (1 << PD4);
+                PORTD ^= (1 << PD0);
            } 
         }
     }
