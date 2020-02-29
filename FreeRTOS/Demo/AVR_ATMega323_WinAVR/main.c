@@ -60,7 +60,6 @@
 //
 #define USART_BAUDRATE 9600
 #define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
-
 void initUART( void )
 {
     DDRD |= (1<<PD3);
@@ -84,17 +83,18 @@ void vApplicationIdleHook( void );
 int main( void )
 {
     initUART();
-    DDRD |= (1 << PD0); //built-in led
+    DDRB |= (1 << PB0); //built-in led
     writeString("Started");
-    PORTB |= (1 << PD0);
+    PORTB |= (1 << PB0);
     _delay_ms(500);
-    PORTB &= ~(1 << PD0);
+    /*
+    PORTB &= ~(1 << PB0);
     _delay_ms(500);
-    PORTB |= (1 << PD0);
+    PORTB |= (1 << PB0);
     _delay_ms(500);
-    PORTB &= ~(1 << PD0);
+    PORTB &= ~(1 << PB0);
     _delay_ms(500);
-
+    */
 
     /* Setup TCP server for communication */
     vStartTCPServerTask();
@@ -106,13 +106,13 @@ int main( void )
 	as 1 in portmacro.h.  To use the cooperative scheduler define
 	configUSE_PREEMPTION as 0. */
 	vTaskStartScheduler();
-    PORTB |= (1 << PD0);
+    PORTB |= (1 << PB0);
     _delay_ms(500);
-    PORTB &= ~(1 << PD0);
+    PORTB &= ~(1 << PB0);
     _delay_ms(500);
-    PORTB |= (1 << PD0);
+    PORTB |= (1 << PB0);
     _delay_ms(500);
-    PORTB &= ~(1 << PD0);
+    PORTB &= ~(1 << PB0);
     _delay_ms(500);
 
 	return 0;

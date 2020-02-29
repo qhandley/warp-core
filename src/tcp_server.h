@@ -8,7 +8,7 @@ extern "C" {
 #include <stdint.h>
 
 #define MAC             0x44, 0xFF, 0xFF, 0x00, 0x00, 0x00
-#define IP              192, 168, 1, 110 
+#define IP              192, 168, 0, 110 
 #define SUBNET          255, 255, 255, 0 
 #define GATEWAY         192, 168, 1, 1 
 #define DNS             8, 8, 8, 8

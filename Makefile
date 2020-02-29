@@ -5,10 +5,11 @@ VPATH 		   = src:lib/ioLibrary_Driver/Ethernet:lib/ioLibrary_Driver/Ethernet/W55
 INC	           = -I lib/ioLibrary_Driver/Ethernet
 
 #MCU_TARGET     = atmega328
-MCU_TARGET     = atmega32u4
+#MCU_TARGET     = atmega32u4
+MCU_TARGET     = atmega1284p
 OPTIMIZE       = -O2    # options are 1, 2, 3, s
 CC             = avr-gcc
-F_CPU          = 16000000UL
+F_CPU          = 20000000UL
 
 override CFLAGS       = -g -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) $(DEFS) -DF_CPU=$(F_CPU) \
    $(INC)
@@ -46,7 +47,8 @@ clean:
 #may need to be changed depending on your programmer
 program: $(PRG).hex
 	#sudo avrdude -c usbasp -p atmega328p -e -U flash:w:$(PRG).hex  -v
-	sudo avrdude -c usbasp -p atmega32u4 -e -U flash:w:$(PRG).hex  -v
+	#sudo avrdude -c usbasp -p atmega32u4 -e -U flash:w:$(PRG).hex  -v
+	sudo avrdude -c usbasp -p atmega1284p -e -U flash:w:$(PRG).hex  -v
 
 lst:  $(PRG).lst
 

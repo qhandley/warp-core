@@ -27,6 +27,13 @@ portTASK_FUNCTION_PROTO( vTCPServerTask, pvParameters );
 static void vTCPServerInit( void );
 static portBASE_TYPE xServerStatus( eSocketNum sn, TickType_t *xLastWaitTime );
 
+void vInitSPI()                                                      
+{                                                                       
+      DDRB |= (1 << PB3) | (1 << PB4) | (1 << PB5) | (1 << PB7);          
+      DDRB &= ~(1 << PB6);                                                
+      SPCR |= (1 << SPE) | (1 << MSTR);                                   
+}
+
 void vStartTCPServerTask()
 {
     vTCPServerInit();
@@ -38,6 +45,7 @@ static void vTCPServerInit( void )
     portENTER_CRITICAL();
     {
         vInitSPI();
+        PORTB &= ~(1 << PB0);
         writeString("Init SPI\n");
         /* Wiznet chip setup time. */
         _delay_ms(2000);
@@ -57,12 +65,14 @@ static void vTCPServerInit( void )
         uint8_t rxsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
         
         /* Initialize network configuration and buffer size. */
+        writeString("Init Wiz\n");
+        wizchip_init( txsize, rxsize );
+        writeString("Going into setnetinfo\n");
         wizchip_setnetinfo( &network_config );
         writeString("Init SetInfo\n");
-        wizchip_init( txsize, rxsize );
-        writeString("Init Wiz\n");
-        setPHYCFGR(0xF8);
+        //setPHYCFGR(0xF8);
         writeString("Done\n");
+        PORTB &= ~(1 << PB0);
     }
     portEXIT_CRITICAL();
 }

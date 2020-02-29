@@ -13,8 +13,8 @@
 
 void initSPI()
 {
-    //DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2); //sck, mosi, ss outputs
-    DDRB |= (1 << PB1) | (1 << PB2) | (1 << PB6); //sck, mosi, ss outputs
+    DDRB |= (1 << PB3) | (1 << PB4) | (1 << PB5) | (1 << PB7); //w_ss, ss, mosi , sck outputs
+    DDRB &= ~(1 << PB6); //miso input
     SPCR |= (1 << SPE) | (1 << MSTR);
 }
 
@@ -108,9 +108,11 @@ int main()
 {
     USART_Init();
     initSPI();
+    writeString("Started\n");
 
     // Built-in LED
-    DDRD |= (1 << PD4);
+    DDRB |= (1 << PB0);
+    PORTB |= (1 << PB0);
 
     uint8_t buf[100];
     char buffer[10];
@@ -133,7 +135,10 @@ int main()
     //setup delay
     _delay_ms(2000);
 
+    writeString("Going into init\n");
     wizchip_init(txsize, rxsize);
+    PORTB &= ~(1 << PB0);
+    writeString("exiting init\n");
     wizchip_setnetinfo(&network_config);
     wizchip_getnetinfo(&temp);
 
@@ -141,7 +146,7 @@ int main()
     uint16_t rcr = 0;
     uint8_t phycfgr = 0;
 
-    PORTD |= (1 << PD4);
+    PORTB |= (1 << PB0);
 
     while(1)
     {
@@ -159,15 +164,16 @@ int main()
         itoa(phycfgr, buffer, 16);
         writeString(buffer);
 
-        //itoa(temp.ip[0], buffer, 10);
-        //writeString(buffer);
+        itoa(temp.ip[0], buffer, 10);
+        writeString(buffer);
 
         int8_t ret = loopback_tcps(0, buf, 8080);
 
-        //itoa(ret, buffer, 10);
-        //writeString(buffer);
+        itoa(ret, buffer, 10);
+        writeString(buffer);
 
         _delay_ms(1000);
+        PORTB ^= (1 << PB0);
     }
 
     return 0;
