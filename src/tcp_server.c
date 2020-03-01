@@ -7,6 +7,7 @@
 
 #include "tcp_server.h"
 #include "socket.h"
+#include "jsmn.h"
 
 #define USART_BAUDRATE 9600
 #define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
@@ -16,6 +17,16 @@ void initSPI()
     //DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2); //sck, mosi, ss outputs
     DDRB |= (1 << PB1) | (1 << PB2) | (1 << PB6); //sck, mosi, ss outputs
     SPCR |= (1 << SPE) | (1 << MSTR);
+}
+
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s) 
+{
+    if(tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start && 
+            strncmp(json + tok->start, s, tok->end - tok->start) == 0) 
+    {
+        return 0;
+    }
+    return -1;
 }
 
 void USART_Init( void )
@@ -57,8 +68,16 @@ void writeString(char *str)
 int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 {
     int32_t ret;
+    char temp[10];
     uint16_t size = 0, sentsize = 0;
 
+    /* Jsmn parser */
+    int8_t r;
+    jsmn_parser p;
+    jsmntok_t t[10];
+
+    jsmn_init(&p);
+ 
     switch(getSn_SR(sn))
     {
         case SOCK_ESTABLISHED:
@@ -74,6 +93,20 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 
                 if(ret <= 0) return ret;      // check SOCKERR_BUSY & SOCKERR_XXX. For showing the occurrence of SOCKERR_BUSY.
                 size = (uint16_t) ret;
+
+                writeString((char *) buf);
+                r = jsmn_parse(&p, (const char *)buf, sizeof(buf), t, sizeof(t) / sizeof(t[0]));
+
+                for(int i=0; i<r; i++)
+                {
+                    writeString("CMD: \n");
+                    if(jsoneq((const char* )buf, &t[i], "cmd") == 0)
+                    {
+                        writeString("CMD: \n");
+                        putByte(buf[t[i+1].start]);
+                    }
+                }
+
                 sentsize = 0;
 
                 while(size != sentsize)
@@ -115,7 +148,7 @@ int main()
     uint8_t buf[100];
     char buffer[10];
 
-    struct wiz_NetInfo_t network_config = 
+   struct wiz_NetInfo_t network_config = 
     {
         {MAC},
         {IP},
@@ -134,8 +167,13 @@ int main()
     _delay_ms(2000);
 
     wizchip_init(txsize, rxsize);
+    _delay_ms(100);
     wizchip_setnetinfo(&network_config);
+    _delay_ms(100);
     wizchip_getnetinfo(&temp);
+    _delay_ms(100);
+    setPHYCFGR(0xF8);
+    _delay_ms(100);
 
     uint8_t version = 0;
     uint16_t rcr = 0;
@@ -148,26 +186,16 @@ int main()
         version = getVERSIONR();    
         rcr = getRCR();    
 
-        phycfgr = getPHYCFGR();
-        itoa(phycfgr, buffer, 16);
-        writeString(buffer);
-
-        _delay_ms(50);
-        setPHYCFGR(0xF8);
-
-        phycfgr = getPHYCFGR();
-        itoa(phycfgr, buffer, 16);
-        writeString(buffer);
-
-        //itoa(temp.ip[0], buffer, 10);
-        //writeString(buffer);
-
         int8_t ret = loopback_tcps(0, buf, 8080);
 
-        //itoa(ret, buffer, 10);
-        //writeString(buffer);
+        _delay_ms(200);
 
+        /*
+        PORTD |= (1 << PD4);
         _delay_ms(1000);
+        PORTD &= ~(1 << PD4);
+        _delay_ms(1000);
+        */
     }
 
     return 0;
