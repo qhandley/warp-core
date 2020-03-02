@@ -52,8 +52,10 @@
 extern "C" {
 #endif
 
+#define XSTR(x) STR(x)
+#define STR(x) #x
+
 #include <stdint.h>
-#include "../wizchip_select.h"
 #include "wizchip_conf.h"
 
 /// @cond DOXY_APPLY_CODE

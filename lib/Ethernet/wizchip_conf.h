@@ -58,8 +58,8 @@
 extern "C" {
 #endif
 
-#include "wizchip_select.h"
 #include <stdint.h>
+#include <avr/io.h>
 /**
  * @brief Select WIZCHIP.
  * @todo You should select one, \b W5100, \b W5100S, \b W5200, \b W5300, \b W5500 or etc. \n\n
@@ -73,7 +73,7 @@ extern "C" {
 #define W5500						5500
 
 #ifndef _WIZCHIP_
-#define _WIZCHIP_                      W5100S   // W5100, W5100S, W5200, W5300, W5500
+#define _WIZCHIP_                      W5500   // W5100, W5100S, W5200, W5300, W5500
 #endif
 
 #define _WIZCHIP_IO_MODE_NONE_         0x0000

@@ -50,7 +50,7 @@
 //*****************************************************************************/
 //A20140501 : for use the type - ptrdiff_t
 #include <stddef.h>
-#include <avr/io.h>
+//
 
 #include "wizchip_conf.h"
 
@@ -80,9 +80,9 @@ void 	  wizchip_cris_exit(void)          {}
  * null function is called.
  */
 //void 	wizchip_cs_select(void)            {};
-void 	wizchip_cs_select(void)
+void 	wizchip_cs_select(void)            
 {
-    PORTB &= ~(1 << PB6); //pull SS low
+    PORTB &= ~(1<<PB3);
 }
 
 /**
@@ -91,9 +91,9 @@ void 	wizchip_cs_select(void)
  * null function is called.
  */
 //void 	wizchip_cs_deselect(void)          {};
-void 	wizchip_cs_deselect(void)
+void 	wizchip_cs_deselect(void)          
 {
-    PORTB |= (1 << PB6); //pull SS high 
+    PORTB |= (1<<PB3);
 }
 
 /**
@@ -122,8 +122,8 @@ void 	wizchip_bus_writedata(uint32_t AddrSel, iodata_t wb)  { *((volatile iodata
 //uint8_t wizchip_spi_readbyte(void)        {return 0;};
 uint8_t wizchip_spi_readbyte(void)        
 {
-    SPDR = 0x00; //get it to talk
-    while(bit_is_clear(SPSR, SPIF)) {} //spin until transfer complete
+    SPDR = 0x0F;
+    while(!(SPSR & (1<<SPIF)));
     return SPDR;
 }
 
@@ -136,7 +136,7 @@ uint8_t wizchip_spi_readbyte(void)
 void 	wizchip_spi_writebyte(uint8_t wb) 
 {
     SPDR = wb;
-    while(bit_is_clear(SPSR, SPIF)) {} //spin until transfer complete
+    while(!(SPSR & (1<<SPIF)));
 }
 
 /**
@@ -145,7 +145,14 @@ void 	wizchip_spi_writebyte(uint8_t wb)
  * null function is called.
  */
 //void 	wizchip_spi_readburst(uint8_t* pBuf, uint16_t len) 	{}; 
-void 	wizchip_spi_readburst(uint8_t* pBuf, uint16_t len) 	{}
+void 	wizchip_spi_readburst(uint8_t* pBuf, uint16_t len) 	
+{
+    uint16_t i;
+    for(i=0; i<len; i++)
+    {
+        pBuf[i] = wizchip_spi_readbyte();
+    }
+}
 
 /**
  * @brief Default function to burst write in SPI interface.
@@ -153,7 +160,14 @@ void 	wizchip_spi_readburst(uint8_t* pBuf, uint16_t len) 	{}
  * null function is called.
  */
 //void 	wizchip_spi_writeburst(uint8_t* pBuf, uint16_t len) {};
-void 	wizchip_spi_writeburst(uint8_t* pBuf, uint16_t len) {}
+void 	wizchip_spi_writeburst(uint8_t* pBuf, uint16_t len) 
+{
+    uint16_t i;
+    for(i=0; i<len; i++)
+    {
+        wizchip_spi_writebyte(pBuf[i]);
+    }
+}
 
 /**
  * @\ref _WIZCHIP instance
@@ -176,7 +190,7 @@ _WIZCHIP  WIZCHIP =
 //    .IF.SPI._read_byte   = wizchip_spi_readbyte,
 //    .IF.SPI._write_byte  = wizchip_spi_writebyte
       };
-*/      
+*/
 _WIZCHIP  WIZCHIP =
 {
     _WIZCHIP_IO_MODE_,
@@ -190,17 +204,10 @@ _WIZCHIP  WIZCHIP =
         wizchip_cs_deselect
     },
     {
-        //{
-            //M20150601 : Rename the function 
-            //wizchip_bus_readbyte,
-            //wizchip_bus_writebyte
-            //wizchip_bus_readdata,
-            //wizchip_bus_writedata
-            .SPI._read_byte   = wizchip_spi_readbyte,
-            .SPI._write_byte  = wizchip_spi_writebyte,
-            //.SPI._read_burst  = wizchip_spi_readburst,
-            //.SPI._write_burst = wizchip_spi_writeburst
-        //},
+        .SPI._read_byte = wizchip_spi_readbyte,
+        .SPI._write_byte = wizchip_spi_writebyte,
+        .SPI._read_burst = wizchip_spi_readburst,
+        .SPI._write_burst = wizchip_spi_writeburst
     }
 };
 
