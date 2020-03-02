@@ -47,6 +47,9 @@ static void vTCPServerInit( void )
         /* Wiznet chip setup time. */
         _delay_ms(1000);
 
+        /* Set RST bit in mode register */
+        setMR(0x80);
+
 #ifdef _TCP_DEBUG_
         usart1_tx_str( "SPI initialized\n" );
         uint8_t version = getVERSIONR();
