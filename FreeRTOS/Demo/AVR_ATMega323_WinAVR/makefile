@@ -31,8 +31,8 @@
 
 
 # MCU name
-#MCU = atmega328p
-MCU = atmega32u4
+MCU = atmega1284p
+F_CPU = 20000000UL
 
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
@@ -49,13 +49,13 @@ OPT = s
 DEMO_DIR = ../Common/Minimal
 SOURCE_DIR = ../../Source
 PORT_DIR = ../../Source/portable/GCC/ATMega323
-WIZ_DIR = ../../../lib/ioLibrary_Driver/Ethernet
+WIZ_DIR = ../../../lib/Ethernet
 
 SRC	= \
 main.c \
 tcp/tcp_server.c \
 control/control.c \
-uart_32u4.c \
+usart.c \
 $(SOURCE_DIR)/tasks.c \
 $(SOURCE_DIR)/queue.c \
 $(SOURCE_DIR)/list.c \
@@ -107,6 +107,7 @@ WARNINGS=-Wall -Wextra -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-align
 CFLAGS = -D GCC_MEGA_AVR -I. -I../../Source/include -I../Common/include  \
 -I$(WIZ_DIR) -I$(WIZ_DIR)/W5500 $(DEBUG_LEVEL) -O$(OPT) \
 -fsigned-char -funsigned-bitfields -fpack-struct -fshort-enums \
+-DF_CPU=$(F_CPU) \
 $(WARNINGS) \
 -Wa,-adhlns=$(<:.c=.lst) \
 $(patsubst %,-I%,$(EXTRAINCDIRS))

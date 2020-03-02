@@ -29,8 +29,7 @@
 #include <avr/io.h>
 #include "queue.h"
 
-#include "uart_32u4.h"
-
+#include "usart.h"
 
 #ifdef __cplusplus
 extern "C" {

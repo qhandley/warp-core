@@ -33,8 +33,6 @@
 /* Standard C includes. */
 #include <stdlib.h>
 #include <string.h>
-
-#define F_CPU           16000000
 #include <util/delay.h>
 
 #ifdef GCC_MEGA_AVR
@@ -48,50 +46,53 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-/* TCP functionality */
+/* TCP functionality. */
 #include "tcp/tcp_server.h"
 #include "socket.h"
 
-/* Control task */
+/* Control task. */
 #include "control/control.h"
 
-/* UART functionality */
-//#include "uart_32u4.h"
-//
-#define USART_BAUDRATE 9600
-#define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
+/* USART functionality. */
+#include "usart.h"
 
-void initUART( void )
-{
-    DDRD |= (1<<PD3);
-
-    unsigned int baud = BAUD_PRESCALE;
-
-    UBRR1H = (unsigned char) (baud>>8);
-    UBRR1L = (unsigned char) baud;
-
-    UCSR1B = (1<<RXEN1) | (1<<TXEN1);
-    UCSR1C = (1<<USBS1) | (3<<UCSZ10);
-}
+//#define _MAIN_DEBUG_
 
 /* Prototypes for tasks defined within this file. */ 
-static void vBlinkyFunction( void *pvParameters );
-
-/* The idle hook is used to just blink LED. */
-void vApplicationIdleHook( void );
+static void vBlinkyTask( void *pvParameters );
+BaseType_t xReturned;
 
 /*-----------------------------------------------------------*/
 int main( void )
 {
-    initUART();
-    DDRD |= (1 << PD4); //built-in led
+    /* Initialize usart for debugging. */
+    usart1_init( MYUBRR );
 
-    /* Setup TCP server for communication */
-    vStartTCPServerTask();
+    /* Set built-in LED as output. */
+    DDRB |= (1 << PB0);
 
-    /* Setup control task to blink leds */
-    vStartControlTask();
-	
+    char debug_buf[20];
+
+#ifdef _MAIN_DEBUG_
+    usart1_tx_str( "Before blinky task\n" );
+    _delay_ms(100);
+    xTaskCreate( vBlinkyTask, "Blink", 128, NULL, tskIDLE_PRIORITY + 1, NULL );
+#else
+    /* Setup SPI and TCP server for communication. */
+    xReturned = xStartTCPServerTask();
+    itoa( (uint8_t) xReturned, debug_buf, 10 ); 
+    usart1_tx_str( "Start TCP task: " );
+    usart1_tx_str( debug_buf );
+    usart1_tx( '\n' );
+
+    /* Setup control task. */
+    xReturned = xStartControlTask();
+    usart1_tx_str( "Start Control task: " );
+    itoa( (uint8_t) xReturned, debug_buf, 10 ); 
+    usart1_tx_str( debug_buf );
+    usart1_tx( '\n' );
+#endif
+     
 	/* In this port, to use preemptive scheduler define configUSE_PREEMPTION
 	as 1 in portmacro.h.  To use the cooperative scheduler define
 	configUSE_PREEMPTION as 0. */
@@ -101,29 +102,15 @@ int main( void )
 }
 /*-----------------------------------------------------------*/
 
-static void vBlinkyFunction( void *pvParameters )
+static void vBlinkyTask( void *pvParameters )
 {
 	/* The parameters are not used. */
 	( void ) pvParameters;
 
-    //const TickType_t xDelay = 1000 / portTICK_PERIOD_MS;
-    const TickType_t xDelay = 100;
-
     for( ;; )
     {
-        for(uint8_t r=0; r<2; r++)
-        {
-            PORTB ^= 0x20;
-            _delay_ms(1000);
-        }
-
-        vTaskDelay( xDelay );
+        /* Toggle LED. */
+        PORTB ^= (1<<PB0);
+        _delay_ms(1000);
     }
 }
-
-void vApplicationIdleHook( void )
-{
-    //PORTD ^= (1<<PD4);
-    //_delay_ms(200);
-}
-

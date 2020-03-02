@@ -453,6 +453,76 @@ typedef struct wiz_NetTimeout_t
 }wiz_NetTimeout;
 
 /**
+ * @brief Default function to enable interrupt.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+void wizchip_cris_enter(void);
+
+/**
+ * @brief Default function to disable interrupt.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+void wizchip_cris_exit(void);
+
+/**
+ * @brief Default function to select chip.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+void wizchip_cs_select(void);
+
+/**
+ * @brief Default function to deselect chip.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+void wizchip_cs_deselect(void);
+
+/**
+ * @brief Default function to read in direct or indirect interface.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+iodata_t wizchip_bus_readdata(uint32_t AddrSel);
+
+/**
+ * @brief Default function to write in direct or indirect interface.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+void wizchip_bus_writedata(uint32_t AddrSel, iodata_t wb);
+
+/**
+ * @brief Default function to read in SPI interface.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+uint8_t wizchip_spi_readbyte(void);
+
+/**
+ * @brief Default function to write in SPI interface.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+void wizchip_spi_writebyte(uint8_t wb);
+
+/**
+ * @brief Default function to burst read in SPI interface.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+void wizchip_spi_readburst(uint8_t* pBuf, uint16_t len);
+
+/**
+ * @brief Default function to burst write in SPI interface.
+ * @note This function help not to access wrong address. If you do not describe this function or register any functions,
+ * null function is called.
+ */
+void wizchip_spi_writeburst(uint8_t* pBuf, uint16_t len);
+
+/**
  *@brief Registers call back function for critical section of I/O functions such as
  *\ref WIZCHIP_READ, @ref WIZCHIP_WRITE, @ref WIZCHIP_READ_BUF and @ref WIZCHIP_WRITE_BUF.
  *@param cris_en : callback function for critical section enter.
