@@ -1,57 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <avr/io.h>
-#include <avr/interrupt.h>
 #include <string.h>
 #include <util/delay.h>
 
 #include "tcp_server.h"
 #include "socket.h"
+#include "usart.h"
 
-#define USART_BAUDRATE 9600
-#define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
+#define _MAIN_DEBUG_
 
-void initSPI()
+void spi_master_init( void )
 {
-    //DDRB |= (1 << PB5) | (1 << PB3) | (1 << PB2); //sck, mosi, ss outputs
-    DDRB |= (1 << PB1) | (1 << PB2) | (1 << PB6); //sck, mosi, ss outputs
-    SPCR |= (1 << SPE) | (1 << MSTR);
-}
-
-void USART_Init( void )
-{
-    DDRD |= (1<<PD3);
-
-    unsigned int baud = BAUD_PRESCALE;
-
-    UBRR1H = (unsigned char) (baud>>8);
-    UBRR1L = (unsigned char) baud;
-
-    UCSR1B = (1<<RXEN1) | (1<<TXEN1);
-    UCSR1C = (1<<USBS1) | (3<<UCSZ10);
-}
-
-uint8_t getByte(void)
-{
-    // Check to see if something was received
-    while (!(UCSR1A & _BV(RXC1)));
-    return (uint8_t) UDR1;
-}
-
-void putByte(unsigned char data)
-{
-    // Stay here until data buffer is empty
-    while (!(UCSR1A & _BV(UDRE1)));
-    UDR1 = (unsigned char) data;
-}
-
-void writeString(char *str)
-{
-    while (*str != '\0')
-    {
-        putByte(*str);
-        ++str;
-    }
+    DDRB |= (1 << PB4) | (1 << PB5) | (1 << PB7); // ss, mosi, sck
+    DDRB |= (1 << PB3); // wiznet ss 
+    SPCR |= (1 << SPE) | (1 << MSTR); // spi enable, master mode
+    SPSR |= (1 << SPI2X); // double-speed
 }
 
 int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
@@ -62,7 +26,7 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
     switch(getSn_SR(sn))
     {
         case SOCK_ESTABLISHED:
-            writeString("Established\n");
+            usart1_tx_str( "Connection established!\n" );
             if(getSn_IR(sn) & Sn_IR_CON)
             {
                 setSn_IR(sn,Sn_IR_CON);
@@ -74,6 +38,9 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 
                 if(ret <= 0) return ret;      // check SOCKERR_BUSY & SOCKERR_XXX. For showing the occurrence of SOCKERR_BUSY.
                 size = (uint16_t) ret;
+
+                usart1_tx_str((char *)buf);
+
                 sentsize = 0;
 
                 while(size != sentsize)
@@ -90,14 +57,15 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
             break;
         case SOCK_CLOSE_WAIT :
             if( (ret = disconnect(sn)) != SOCK_OK) return ret;
+            usart1_tx_str( "Socket closed.\n" );
             break;
         case SOCK_INIT :
             if( (ret = listen(sn)) != SOCK_OK) return ret;
-            writeString("Init\n");
+            usart1_tx_str( "Socket listening...\n" );
             break;
         case SOCK_CLOSED:
             if( (ret = socket(sn, Sn_MR_TCP, port, 0x00)) != sn) return ret;
-            writeString("Closed\n");
+            usart1_tx_str( "Socket opened.\n" );
         default:
             break;
     }
@@ -106,14 +74,26 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 
 int main()
 {
-    USART_Init();
-    initSPI();
+    /* Init usart1 for debugging */
+    usart1_init( MYUBRR );
 
-    // Built-in LED
-    DDRD |= (1 << PD4);
+    /* Init spi for wizchip */
+    spi_master_init();
 
-    uint8_t buf[100];
-    char buffer[10];
+    /* Built-in LED */
+    DDRB |= (1 << PB0);
+
+    int8_t ret;
+    char buf[20];
+    uint8_t tcp_buf[ DATA_BUF_SIZE ];
+
+#ifdef _MAIN_DEBUG_
+    uint8_t version = getVERSIONR();    
+    itoa( version, buf, 16 );
+    usart1_tx_str( "Wizchip version: " );
+    usart1_tx_str( buf );
+    usart1_tx('\n');
+#endif
 
     struct wiz_NetInfo_t network_config = 
     {
@@ -122,7 +102,7 @@ int main()
         {SUBNET},
         {GATEWAY},
         {DNS},
-        2
+        1
     };
 
     struct wiz_NetInfo_t temp;
@@ -131,43 +111,50 @@ int main()
     uint8_t rxsize[8] = {1, 0, 0, 0, 0, 0, 0, 0};
 
     //setup delay
-    _delay_ms(2000);
+    _delay_ms(500);
 
     wizchip_init(txsize, rxsize);
+    _delay_ms(10);
+
     wizchip_setnetinfo(&network_config);
+    _delay_ms(10);
+
     wizchip_getnetinfo(&temp);
+    _delay_ms(10);
 
-    uint8_t version = 0;
-    uint16_t rcr = 0;
-    uint8_t phycfgr = 0;
-
-    PORTD |= (1 << PD4);
-
-    while(1)
+#ifdef _MAIN_DEBUG_
+    usart1_tx_str( "IP: " );
+    for(uint8_t i=0; i<4; i++)
     {
-        version = getVERSIONR();    
-        rcr = getRCR();    
+        itoa( temp.ip[i], buf, 10 );
+        usart1_tx_str( buf );
+        usart1_tx(' ');
+    }
+    usart1_tx('\n');
 
-        phycfgr = getPHYCFGR();
-        itoa(phycfgr, buffer, 16);
-        writeString(buffer);
+    usart1_tx_str( "Port: " );
+    itoa( PORT, buf, 10 );
+    usart1_tx_str( buf );
+    usart1_tx('\n');
+#endif
 
-        _delay_ms(50);
-        setPHYCFGR(0xF8);
+    while( 1 )
+    {
+        /* Toggle LED */
+        PORTB ^= (1<<PB0);
 
-        phycfgr = getPHYCFGR();
-        itoa(phycfgr, buffer, 16);
-        writeString(buffer);
+        /* Loopback single socket */
+        ret = loopback_tcps(SOCK_TCP, tcp_buf, PORT);
 
-        //itoa(temp.ip[0], buffer, 10);
-        //writeString(buffer);
+        if( ret != 1 )
+        {
+            usart1_tx_str( "ERROR: " );
+            itoa( ret, buf, 10 );
+            usart1_tx_str( buf );
+            usart1_tx('\n');
+        }
 
-        int8_t ret = loopback_tcps(0, buf, 8080);
-
-        //itoa(ret, buffer, 10);
-        //writeString(buffer);
-
-        _delay_ms(1000);
+        _delay_ms(100);
     }
 
     return 0;

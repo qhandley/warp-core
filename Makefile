@@ -1,14 +1,13 @@
 PRG            = tcp_server
-OBJ            = $(PRG).o socket.o wizchip_conf.o w5500.o #usart.o
+OBJ            = $(PRG).o socket.o wizchip_conf.o w5500.o usart.o
 
-VPATH 		   = src:lib/ioLibrary_Driver/Ethernet:lib/ioLibrary_Driver/Ethernet/W5500:lib/AVR-UART-lib
-INC	           = -I lib/ioLibrary_Driver/Ethernet
+VPATH 		   = src:lib/Ethernet:lib/Ethernet/W5500
+INC	           = -I lib/Ethernet
 
-#MCU_TARGET     = atmega328
-MCU_TARGET     = atmega32u4
+MCU_TARGET     = atmega1284p
 OPTIMIZE       = -O2    # options are 1, 2, 3, s
 CC             = avr-gcc
-F_CPU          = 16000000UL
+F_CPU          = 20000000UL
 
 override CFLAGS       = -g -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) $(DEFS) -DF_CPU=$(F_CPU) \
    $(INC)
@@ -34,8 +33,8 @@ wizchip_conf.o: wizchip_conf.c wizchip_conf.h
 w5500.o: w5500.c w5500.h
 	$(CC) $(CFLAGS) -c $<
 
-#usart.o: usart.c usart.h
-#	$(CC) $(CFLAGS) -c $<
+usart.o: usart.c usart.h
+	$(CC) $(CFLAGS) -c $<
 
 clean: 
 	rm -rf *.o $(PRG).elf *.bin *.hex *.srec *.bak  
@@ -45,8 +44,7 @@ clean:
 #setup for for USB programmer
 #may need to be changed depending on your programmer
 program: $(PRG).hex
-	#sudo avrdude -c usbasp -p atmega328p -e -U flash:w:$(PRG).hex  -v
-	sudo avrdude -c usbasp -p atmega32u4 -e -U flash:w:$(PRG).hex  -v
+	sudo avrdude -c usbasp -p atmega1284p -e -U flash:w:$(PRG).hex  -v
 
 lst:  $(PRG).lst
 
