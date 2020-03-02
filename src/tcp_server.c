@@ -8,6 +8,8 @@
 #include "socket.h"
 #include "usart.h"
 
+#define _MAIN_DEBUG_
+
 void spi_master_init( void )
 {
     DDRB |= (1 << PB4) | (1 << PB5) | (1 << PB7); // ss, mosi, sck
@@ -81,8 +83,17 @@ int main()
     /* Built-in LED */
     DDRB |= (1 << PB0);
 
+    int8_t ret;
     char buf[20];
     uint8_t tcp_buf[ DATA_BUF_SIZE ];
+
+#ifdef _MAIN_DEBUG_
+    uint8_t version = getVERSIONR();    
+    itoa( version, buf, 16 );
+    usart1_tx_str( "Wizchip version: " );
+    usart1_tx_str( buf );
+    usart1_tx('\n');
+#endif
 
     struct wiz_NetInfo_t network_config = 
     {
@@ -111,6 +122,7 @@ int main()
     wizchip_getnetinfo(&temp);
     _delay_ms(10);
 
+#ifdef _MAIN_DEBUG_
     usart1_tx_str( "IP: " );
     for(uint8_t i=0; i<4; i++)
     {
@@ -120,29 +132,27 @@ int main()
     }
     usart1_tx('\n');
 
-    uint8_t version = 0;
-    uint16_t rtr = 0;
+    usart1_tx_str( "Port: " );
+    itoa( PORT, buf, 10 );
+    usart1_tx_str( buf );
+    usart1_tx('\n');
+#endif
 
     while( 1 )
     {
         /* Toggle LED */
         PORTB ^= (1<<PB0);
 
-        /*
-        version = getVERSIONR();    
-        itoa( version, buf, 16 );
-        usart1_tx_str( "Version: " );
-        usart1_tx_str( buf );
-        usart1_tx('\n');
+        /* Loopback single socket */
+        ret = loopback_tcps(SOCK_TCP, tcp_buf, PORT);
 
-        rtr = getRTR();    
-        itoa( rtr, buf, 10 );
-        usart1_tx_str( "RTR: " );
-        usart1_tx_str( buf );
-        usart1_tx('\n');
-        */
-
-        int8_t ret = loopback_tcps(SOCK_TCP, tcp_buf, PORT);
+        if( ret != 1 )
+        {
+            usart1_tx_str( "ERROR: " );
+            itoa( ret, buf, 10 );
+            usart1_tx_str( buf );
+            usart1_tx('\n');
+        }
 
         _delay_ms(100);
     }

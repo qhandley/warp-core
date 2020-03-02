@@ -1,10 +1,6 @@
 #ifndef _TCP_SERVER_H_
 #define _TCP_SERVER_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 
 #define MAC             0x44, 0xFF, 0xFF, 0x00, 0x00, 0x00
@@ -16,28 +12,10 @@ extern "C" {
 #define PORT            8080
 #define SOCK_TCP        0
 
-/* Loopback test debug message printout enable */
-#define	_LOOPBACK_DEBUG_
-
-/* DATA_BUF_SIZE define for Loopback example */
 #ifndef DATA_BUF_SIZE
     #define DATA_BUF_SIZE          ( 256 )
 #endif
 
-/************************/
-/* Select LOOPBACK_MODE */
-/************************/
-#define LOOPBACK_MAIN_NOBLOCK    0
-#define LOOPBACK_MODE   LOOPBACK_MAIN_NOBLOCK
-
-// TCP server loopback test example
 int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port);
 
-// TCP server
-int32_t tcps(uint8_t sn, uint8_t* buf, uint16_t port);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // _TCP_SERVER_H_
+#endif /* _TCP_SERVER_H_ */
