@@ -1,8 +1,8 @@
 PRG            = tcp_server
 OBJ            = $(PRG).o socket.o wizchip_conf.o w5500.o usart.o
 
-VPATH 		   = src:lib/Ethernet:lib/Ethernet/W5500
-INC	           = -I lib/Ethernet
+VPATH 		   = src:../lib/Ethernet:../lib/Ethernet/W5500
+INC	           = -I ../lib/Ethernet
 
 MCU_TARGET     = atmega1284p
 OPTIMIZE       = -O2    # options are 1, 2, 3, s
