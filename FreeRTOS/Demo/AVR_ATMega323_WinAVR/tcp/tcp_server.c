@@ -8,6 +8,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <string.h>
 
 /* Application include files. */
 #include "tcp_server.h"
@@ -172,8 +173,8 @@ TickType_t xLastWakeTime;
                     ret = recv( 0, buf, size);
                     usart1_tx_str(buf);
 
-                    //r = jsmn_parse(&p, (const char *)buf, sizeof(buf), &t, sizeof(t));
-                    //json_extract((char *) buf, t, r); 
+                    r = jsmn_parse(&p, (const char *)buf, strlen(buf), t, sizeof(t)/sizeof(t[0]));
+                    json_extract((char *) buf, t, r); 
                 }
                 setSn_IR( 0, Sn_IR_RECV );
             }

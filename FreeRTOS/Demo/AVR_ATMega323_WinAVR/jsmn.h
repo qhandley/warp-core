@@ -24,6 +24,8 @@
 #ifndef JSMN_H
 #define JSMN_H
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
 #include <avr/io.h>
@@ -477,17 +479,22 @@ JSMN_API void jsmn_init(jsmn_parser *parser) {
 
 extern QueueHandle_t xControlCmdQueue;
 
+enum JSON_TYPE{
+    JSON_INT = 0,
+    JSON_FLOAT = 1,
+    JSON_STRING = 2,
+};
 struct json_object{
-    uint8_t type;
+    enum JSON_TYPE type;
     char* name;
     union _data {
         int integer;
-        float decimal;
+        float fpoint;
         char* string;
         } data;
     };
 
-static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
+static uint8_t jsoneq(const char *json, jsmntok_t *tok, const char *s) {
   if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
       strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
     return 0;
@@ -495,96 +502,86 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
   return -1;
 }
 
+const char * Name_String = "\"Name\":";
+const char * Value_String = "\"Value\":";
 static uint8_t json_serialize(struct json_object passed[], uint8_t num_objects, char* json_string){
     uint8_t pointer = 0;
     uint8_t temp_pointer = 0;
-	json_string[pointer++] = '{';
-    char temp[10];
-	for (int i = 0; i < num_objects; i++){
+	json_string[pointer++] = '[';
+    char temp[20];
+	for (uint8_t i = 0; i < num_objects; i++){
+	    json_string[pointer++] = '{';
+        for(uint8_t j = 0; j < strlen(Name_String); j++){
+            json_string[pointer++] = Name_String[j];
+        }
 	    json_string[pointer++] = '"';
-        for(int j = 0; j < strlen(passed[i].name); j++){
+        for(uint8_t j = 0; j < strlen(passed[i].name); j++){
             json_string[pointer++] = passed[i].name[j];
         }
 	    json_string[pointer++] = '"';
-	    json_string[pointer++] = ':';
-	    json_string[pointer++] = ' ';
+	    json_string[pointer++] = ',';
+        for(uint8_t j = 0; j < strlen(Value_String); j++){
+            json_string[pointer++] = Value_String[j];
+        }
 		switch(passed[i].type){			
-            case 0:
+            case JSON_INT:
                 itoa(passed[i].data.integer,temp, 10);
-                for(int j = 0; j < strlen(temp); j++){
+                for(uint8_t j = 0; j < strlen(temp); j++){
                     json_string[pointer++] = temp[j];
                 }
                 break;
-            case 1:
+            case JSON_FLOAT:
                 temp_pointer = 0;
-                dtostrf(passed[i].data.decimal, 10, 1, temp);
+                dtostrf(passed[i].data.fpoint, 10, 1, temp);
                 while(temp[temp_pointer] == ' '){
                     temp_pointer += 1;
                 }
                         
-                for(int j = 0; j < strlen(temp) - temp_pointer; j++){
+                for(uint8_t j = 0; j < strlen(temp) - temp_pointer; j++){
                     json_string[pointer++] = temp[temp_pointer + j];
                 }
+                
                 break;
-            case 2:
+            case JSON_STRING:
 	            json_string[pointer++] = '"';
-                for(int j = 0; j < strlen(passed[i].data.string); j++){
+                for(uint8_t j = 0; j < strlen(passed[i].data.string); j++){
                     json_string[pointer++] = passed[i].data.string[j];
                 }
 	            json_string[pointer++] = '"';
                 break;
 
 		}	
+	    json_string[pointer++] = '}';
         if(i+1 < num_objects){
 	        json_string[pointer++] = ',';
         }
 	}
-	json_string[pointer++] = '}';
+	json_string[pointer++] = ']';
 	json_string[pointer++] = 0;
-    
-
 	return 0;
 }	
-static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r){
+static char json_extract(char *string, jsmntok_t *t, int8_t r){
 	if (r < 0){
         return 1;
 	}
-	for (int i = 1; i < r; i++){
-        if (jsoneq(string, &t[i], "CMD") == 0) {
-            uint8_t token_len = t[i +1].end - t[i +1].start;
-            char token[token_len+1];
-            for(int j = 0; j < token_len; j++){
-                token[j] = *(string + t[i +1].start + j);
-            }
-            token[token_len] = 0;
-            unsigned char val = atoi(token);
-            xQueueSend( xControlCmdQueue, (void *) &val, 0);
-        }
-    }
-    return 0;
-}
-/*
-static uint8_t json_extract(char *string, jsmntok_t *t, int8_t r, char *names[], uint8_t num_names){
-	if (r < 0){
-		writeString("Failed to parse JSON");
-        return 1;
-	}
-	for (int i = 1; i < r; i++){
-        for(int index = 0; index <= num_names; index++){
-            if (jsoneq(string, &t[i], names[index]) == 0) {
+	for (uint8_t i = 1; i < r; i++){
+        if (jsoneq(string, &t[i], "name") == 0) {
+            i++;
+            if (jsoneq(string, &t[i], "CMD") == 0) {
+                i += 1;
                 uint8_t token_len = t[i +1].end - t[i +1].start;
                 char token[token_len+1];
-                for(int j = 0; j < token_len; j++){
+                for(uint8_t j = 0; j < token_len; j++){
                     token[j] = *(string + t[i +1].start + j);
+                    token[token_len] = 0;
+                    unsigned char val = atoi(token);
+                    xQueueSend( xControlCmdQueue, (void *) &val, 0);
                 }
-                token[token_len] = 0;
-                writeString(token);
-                writeString("\n");
+            
             }
         }
     }
     return 0;
 }
-*/ 
 
 #endif /* JSMN_H */
