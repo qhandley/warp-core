@@ -3,6 +3,7 @@
 #include <avr/io.h>
 #include <string.h>
 #include <util/delay.h>
+#include <avr/wdt.h>
 
 #include "tcp_server.h"
 #include "socket.h"
@@ -74,8 +75,25 @@ int32_t loopback_tcps(uint8_t sn, uint8_t* buf, uint16_t port)
 
 int main()
 {
+    wdt_reset();
+
+    MCUSR = 0;
+    WDTCSR |= _BV(WDCE) | _BV(WDE);
+    WDTCSR = 0;
+
     /* Init usart1 for debugging */
     usart1_init( MYUBRR );
+
+    char buf[20];
+
+    uint8_t failure = WDTCSR;
+    itoa( failure, buf, 16 );
+    usart1_tx_str( buf );
+    usart1_tx( '\n' );
+    failure = MCUSR;
+    itoa( failure, buf, 16 );
+    usart1_tx_str( buf );
+    usart1_tx( '\n' );
 
     /* Init spi for wizchip */
     spi_master_init();
@@ -84,7 +102,6 @@ int main()
     DDRB |= (1 << PB0);
 
     int8_t ret;
-    char buf[20];
     uint8_t tcp_buf[ DATA_BUF_SIZE ];
 
 #ifdef _MAIN_DEBUG_
