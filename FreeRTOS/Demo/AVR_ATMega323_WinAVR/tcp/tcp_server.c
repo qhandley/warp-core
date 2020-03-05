@@ -17,30 +17,41 @@
 
 #define _TCP_DEBUG_
 
+#define tcpDELAY_TIME           ( ( const TickType_t ) 10 )
+
+/* 
+ * TCP server initialization on W5500 chip for IP, MAC, etc. including
+ * setup for transmit/receive buffer sizes. 
+ */
+static void prvTCPServerInit( void );
+
+/*
+ * Monitor the status of a TCP server on specified socket (0-7). Returns 1
+ * on successful operation and error code otherwise, check W5500 Ethernet
+ * library for specific errors.
+ */
+static BaseType_t prvServerStatus( eSocketNum sn );
+
+/* Holds the state of the TCP server connection. True if connection has been
+ established and false if not. */
+BaseType_t xServerConnEstablished = pdFALSE;
+
 #ifdef _TCP_DEBUG_
     char debug_buf[20];
 #endif
 
-#define tcpDELAY_TIME           ( ( const TickType_t ) 100 )
-
-portBASE_TYPE xServerConnEstablished = pdFALSE;
-
-/* TCP server tasks prototype. */
-portTASK_FUNCTION_PROTO( vTCPServerTask, pvParameters );
-
-/* Static prototypes for methods in this file. */
-static void vTCPServerInit( void );
-static portBASE_TYPE xServerStatus( eSocketNum sn );
+/*------------------------------------------------*/
 
 BaseType_t xStartTCPServerTask( void )
 {
-    vTCPServerInit();
+    prvTCPServerInit();
     return xTaskCreate( vTCPServerTask, "TCP", 2048, NULL, tcpTCP_SERVER_TASK_PRIORITY, NULL );
 }
+/*------------------------------------------------*/
 
-static void vTCPServerInit( void )
+static void prvTCPServerInit( void )
 {
-    portENTER_CRITICAL();
+    taskENTER_CRITICAL();
     {
         INIT_SPI_MASTER();
 
@@ -69,68 +80,70 @@ static void vTCPServerInit( void )
             1 // static
         };
 
-        /* Allocate 1KB for tx and rx buffer for socket 0. */
-        uint8_t txsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
-        uint8_t rxsize[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
+        /* Allocate 16KB for tx and rx buffer for socket 0. */
+        uint8_t tx_size[8] = { 16, 0, 0, 0, 0, 0, 0, 0 };
+        uint8_t rx_size[8] = { 16, 0, 0, 0, 0, 0, 0, 0 };
         
         /* Initialize network configuration and buffer size. */
-        wizchip_init( txsize, rxsize );
+        wizchip_init( tx_size, rx_size );
         _delay_ms(10);
+
         wizchip_setnetinfo( &network_config );
         _delay_ms(10);
 
 #ifdef _TCP_DEBUG_
-        struct wiz_NetInfo_t temp;
-        wizchip_getnetinfo( &temp );
+        struct wiz_NetInfo_t wiz_config;
+        wizchip_getnetinfo( &wiz_config );
 
         usart1_tx_str( "Wizchip configured with:\n" );
         usart1_tx_str( "IP: " );
-        for(uint8_t i=0; i<4; i++)
+        for( uint8_t i=0; i<4; i++ )
         {
-            itoa( temp.ip[i], debug_buf, 10 );
+            itoa( wiz_config.ip[i], debug_buf, 10 );
             usart1_tx_str( debug_buf );
             usart1_tx( ' ' );
         }
         usart1_tx( '\n' );
 #endif
     }
-    portEXIT_CRITICAL();
+    taskEXIT_CRITICAL();
 }
+/*------------------------------------------------*/
 
-static portBASE_TYPE xServerStatus( eSocketNum sn )
+static BaseType_t prvServerStatus( eSocketNum sn )
 {
 int8_t ret;
 
     switch( getSn_SR( sn ) )
     {
-        /* Socket connection established with peer - SYN packet received */
+        /* Socket n connection established with peer - SYN packet received. */
         case SOCK_ESTABLISHED:
             if( getSn_IR( sn ) & Sn_IR_CON )
             {
-                usart1_tx_str("New connection established!\n");
-                /* Clear CON interrupt bit issued from successful connection */
+                usart1_tx_str( "New connection established!\n" );
+                /* Clear CON interrupt bit issued from successful connection. */
                 setSn_IR( sn, Sn_IR_CON );
             }
             xServerConnEstablished = pdTRUE;
             break;
 
-        /* Socket n received disconnect-request (FIN packet) from connected peer */
+        /* Socket n received disconnect-request (FIN packet) from connected peer. */
         case SOCK_CLOSE_WAIT:
             if( ( ret = disconnect( sn ) ) != SOCK_OK ) return ret;
             xServerConnEstablished = pdFALSE;
-            usart1_tx_str("Closing socket...\n");
+            usart1_tx_str( "Closing socket...\n" );
             break;
 
-        /* Socket n is opened with TCP mode, start listening for peer */
+        /* Socket n is opened with TCP mode, start listening for peer. */
         case SOCK_INIT:
             if( ( ret = listen( sn ) ) != SOCK_OK ) return ret;
-            usart1_tx_str("Socket initialized... listening for connection\n");
+            usart1_tx_str( "Socket initialized... listening for connection\n" );
             break;
 
-         /* Socket n is closed, configure TCP server for socket n on port 8080 */
+         /* Socket n is closed, configure TCP server for socket n. */
         case SOCK_CLOSED:
             if( ( ret = socket( sn, Sn_MR_TCP, tcpPORT, 0x00 ) ) != sn ) return ret;
-            usart1_tx_str("Socket closed... opening\n");
+            usart1_tx_str( "Socket opened.\n" );
             break;
 
         default:
@@ -138,50 +151,66 @@ int8_t ret;
     }
     return 1;
 } 
+/*------------------------------------------------*/
 
 portTASK_FUNCTION( vTCPServerTask, pvParameters )
 {
-    /* Remove compiler warning */
+    /* Remove compiler warning. */
     ( void ) pvParameters;
 
 int32_t ret;
-uint16_t size = 0;
-uint8_t buf[ DATA_BUF_SIZE ];
-portBASE_TYPE status;
+uint16_t size = 0, sentsize = 0;
+uint8_t tcp_buf[ tcpDATA_BUF_SIZE ];
+BaseType_t status;
 
-int8_t r;
-jsmn_parser p;
-jsmntok_t t[16];
+//int8_t r;
+//jsmn_parser p;
+//jsmntok_t t[16];
+
 TickType_t xLastWakeTime;
 
-    jsmn_init(&p);
+    //jsmn_init(&p);
     xLastWakeTime = xTaskGetTickCount();
 
     for( ;; )
     {
-        status = xServerStatus( 0 );
+        status = prvServerStatus( 0 );
 
         if( xServerConnEstablished == pdTRUE && status == 1 )
         {
-            /* Check if a recv has occured otherwise block */
-            if( ( getSn_IR(0) & Sn_IR_RECV ) ) 
+            if( ( size = getSn_RX_RSR(0) ) > 0 )
             {
-                if( (size = getSn_RX_RSR(0)) > 0) // Don't need to check SOCKERR_BUSY because it doesn't not occur.
+                if(size > tcpDATA_BUF_SIZE) 
                 {
-                    if(size > DATA_BUF_SIZE) size = DATA_BUF_SIZE; // clips size if larger that data buffer
-                    ret = recv( 0, buf, size);
-                    usart1_tx_str(buf);
-
-                    //r = jsmn_parse(&p, (const char *)buf, sizeof(buf), &t, sizeof(t));
-                    //json_extract((char *) buf, t, r); 
+                    size = tcpDATA_BUF_SIZE;
                 }
+
+                taskENTER_CRITICAL();
+                {
+                    ret = recv( 0, tcp_buf, size );
+                }
+                taskEXIT_CRITICAL();
+
+                if( ret <= 0 )
+                {
+                    /* Handle receive error. */
+                }
+
+            #ifdef _TCP_DEBUG_
+                usart1_tx_str( "Received: " );
+                usart1_tx_str( tcp_buf );
+                usart1_tx( '\n' );
+            #endif
+
+                /* Parse message received. */
+                //r = jsmn_parse(&p, (const char *)buf, sizeof(buf), &t, sizeof(t));
+                //json_extract((char *) buf, t, r); 
+                
+                /* Clear receive bit in socket interrupt register. */ 
                 setSn_IR( 0, Sn_IR_RECV );
             }
-            else
-            {
-                //usart1_tx_str("No rx... delaying\n");
-                //vTaskDelayUntil( &xLastWakeTime, tcpDELAY_TIME );
-            }
         }
+
+        vTaskDelayUntil( &xLastWakeTime, tcpDELAY_TIME );
     }
 }
