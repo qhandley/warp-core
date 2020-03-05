@@ -30,17 +30,6 @@ typedef enum
     tcpSOCKET7
 } eSocketNum;
 
-/*
- *  Set ss, mosi, and sck to outputs, additionally wiz_ss
- *  Enable SPI in master mode with 2x datarate
- */
-#define INIT_SPI_MASTER()                                   \
-{                                                           \
-    DDRB |= (1 << PB4) | (1 << PB5) | (1 << PB7);           \
-    DDRB |= (1 << PB3);                                     \
-    SPCR |= (1 << SPE) | (1 << MSTR);                       \
-    SPSR |= (1 << SPI2X);                                   \
-}                                                           
 
 BaseType_t xStartTCPServerTask( void );
 portTASK_FUNCTION( vTCPServerTask, pvParameters );

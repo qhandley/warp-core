@@ -17,8 +17,9 @@ void spi_master_init( void )
     /* Set MOSI, SCK, and SS as outputs. */
     __SPI_DDR |= (1<<__SPI_MOSI) | (1<<__SPI_SCK) | (1<<__SPI_WIZ_SS);
 
-#if (__AVR_ATmega1284p)
-    __SPI_DDR |= (1<<__SPI_SD_SS);
+#if (__AVR_ATmega1284P__)
+    __SPI_DDR |= (1<<__SPI_SD_SS) | (1<<__SPI_OUT_SS);
+    __SPI_PORT |= (1<<__SPI_OUT_SS);
 #endif
 
     /* Enable SPI and set to master mode. */
@@ -26,5 +27,14 @@ void spi_master_init( void )
 
     /* Enable double speed. */
     SPSR |= (1<<SPI2X); 
+}
+
+void spi_write_byte( uint8_t data )
+{
+    /* Pull SS line low to start transfer. */
+    __SPI_PORT &= ~(1<<__SPI_OUT_SS);
+    SPDR = data;
+    while( !(SPSR & (1<<SPIF)) );
+    __SPI_PORT |= (1<<__SPI_OUT_SS);
 }
 
