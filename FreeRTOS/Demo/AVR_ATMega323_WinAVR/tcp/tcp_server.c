@@ -53,8 +53,6 @@ static void prvTCPServerInit( void )
 {
     taskENTER_CRITICAL();
     {
-        INIT_SPI_MASTER();
-
         /* Wiznet chip setup time. */
         _delay_ms(1000);
 

@@ -36,8 +36,8 @@
 #include <util/delay.h>
 
 #ifdef GCC_MEGA_AVR
-	/* EEPROM routines used only with the WinAVR compiler. */
-	#include <avr/eeprom.h>
+/* EEPROM routines used only with the WinAVR compiler. */
+#include <avr/eeprom.h>
 #endif
 
 #include <avr/io.h>
@@ -53,59 +53,68 @@
 /* Control task. */
 #include "control/control.h"
 
-/* USART functionality. */
+/* Peripheral functionality. */
 #include "usart.h"
+#include "spi.h"
 
 //#define _MAIN_DEBUG_
 
+#ifdef _MAIN_DEBUG_
+    BaseType_t xReturned;
+    char debug_buf[ 20 ];
+#endif
+
 /* Prototypes for tasks defined within this file. */ 
 static void vBlinkyTask( void *pvParameters );
-BaseType_t xReturned;
 
 /*-----------------------------------------------------------*/
 int main( void )
 {
-    /* Initialize usart for debugging. */
+    /* Initialize usart1 for debugging. */
     usart1_init( MYUBRR );
 
-    /* Set built-in LED as output. */
-    DDRB |= (1 << PB0);
+    /* Initialize spi in master mode. */
+    spi_master_init();
 
-    char debug_buf[20];
+    /* Initialize built-in LED. */
+    DDRB |= (1 << PB0); 
 
 #ifdef _MAIN_DEBUG_
-    usart1_tx_str( "Before blinky task\n" );
-    _delay_ms(100);
-    xTaskCreate( vBlinkyTask, "Blink", 128, NULL, tskIDLE_PRIORITY + 1, NULL );
-#else
-    /* Setup SPI and TCP server for communication. */
+
+    /* Print task creation information for tasks. */
     xReturned = xStartTCPServerTask();
     itoa( (uint8_t) xReturned, debug_buf, 10 ); 
-    usart1_tx_str( "Start TCP task: " );
+    usart1_tx_str( "TCP task creation: " );
     usart1_tx_str( debug_buf );
     usart1_tx( '\n' );
 
-    /* Setup control task. */
     xReturned = xStartControlTask();
-    usart1_tx_str( "Start Control task: " );
+    usart1_tx_str( "Control task creation: " );
     itoa( (uint8_t) xReturned, debug_buf, 10 ); 
     usart1_tx_str( debug_buf );
     usart1_tx( '\n' );
-#endif
-     
-	/* In this port, to use preemptive scheduler define configUSE_PREEMPTION
-	as 1 in portmacro.h.  To use the cooperative scheduler define
-	configUSE_PREEMPTION as 0. */
-	vTaskStartScheduler();
 
-	return 0;
+#else
+
+    /* Start TCP task and control task. */
+    xStartTCPServerTask();
+    xStartControlTask();
+
+#endif
+
+    /* In this port, to use preemptive scheduler define configUSE_PREEMPTION
+       as 1 in portmacro.h.  To use the cooperative scheduler define
+       configUSE_PREEMPTION as 0. */
+    vTaskStartScheduler();
+
+    return 0;
 }
 /*-----------------------------------------------------------*/
 
 static void vBlinkyTask( void *pvParameters )
 {
-	/* The parameters are not used. */
-	( void ) pvParameters;
+    /* The parameters are not used. */
+    ( void ) pvParameters;
 
     for( ;; )
     {

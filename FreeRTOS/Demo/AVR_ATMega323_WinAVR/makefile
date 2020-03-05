@@ -56,6 +56,7 @@ main.c \
 tcp/tcp_server.c \
 control/control.c \
 usart.c \
+spi.c \
 $(SOURCE_DIR)/tasks.c \
 $(SOURCE_DIR)/queue.c \
 $(SOURCE_DIR)/list.c \
