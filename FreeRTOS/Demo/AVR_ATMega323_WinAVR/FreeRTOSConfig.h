@@ -61,7 +61,7 @@
 #define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
 
 /* Set the following definitions to 1 to include the API function, or zero
-to exclude the API function. */
+   to exclude the API function. */
 
 #define INCLUDE_vTaskPrioritySet		0
 #define INCLUDE_uxTaskPriorityGet		0
