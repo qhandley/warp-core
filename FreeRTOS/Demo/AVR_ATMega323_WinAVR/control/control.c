@@ -32,7 +32,9 @@ BaseType_t *command;
             if( xQueueReceive( xControlCmdQueue, &command, 0 ) )
             {
                 /* Toggle LED. */
-                PORTB ^= (1 << PB0);
+                for (int i = 0; i < command; i++){
+                    PORTB ^= (1 << PB0);
+                }
             } 
         }
     }

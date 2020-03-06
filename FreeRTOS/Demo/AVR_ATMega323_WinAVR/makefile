@@ -66,7 +66,8 @@ $(SOURCE_DIR)/portable/MemMang/heap_1.c \
 $(PORT_DIR)/port.c \
 $(WIZ_DIR)/socket.c \
 $(WIZ_DIR)/wizchip_conf.c \
-$(WIZ_DIR)/W5500/w5500.c
+$(WIZ_DIR)/W5500/w5500.c \
+$(JSMN_DIR)/jsmn.c
 
 
 # If there is more than one source file, append them above, or modify and
