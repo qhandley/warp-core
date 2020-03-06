@@ -42,7 +42,7 @@ TARGET = warpcore
 
 # Optimization level, can be [0, 1, 2, 3, s]. 0 turns off optimization.
 # (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
-OPT = s
+OPT = 1
 
 
 # List C source files here. (C dependencies are automatically generated.)
@@ -50,6 +50,7 @@ DEMO_DIR = ../Common/Minimal
 SOURCE_DIR = ../../Source
 PORT_DIR = ../../Source/portable/GCC/ATMega323
 WIZ_DIR = ../../../lib/Ethernet
+JSMN_DIR = ../../../lib/jsmn
 
 SRC	= \
 main.c \
@@ -85,12 +86,12 @@ $(WIZ_DIR)/W5500/w5500.c
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = 
+ASRC =
 
 
 # List any extra directories to look for include files here.
 #     Each directory must be seperated by a space.
-EXTRAINCDIRS = 
+EXTRAINCDIRS = $(JSMN_DIR) $(WIZ_DIR)
 
 
 # Optional compiler flags.

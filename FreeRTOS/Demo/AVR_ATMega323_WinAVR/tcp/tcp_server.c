@@ -1,10 +1,12 @@
 /* Scheduler include files. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 
 /* AVR include files. */
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -12,8 +14,9 @@
 /* Application include files. */
 #include "tcp_server.h"
 #include "socket.h"
+#include "jsmn.h"
+#include "../spi.h"
 #include "../usart.h"
-#include "../jsmn.h"
 
 #define _TCP_DEBUG_
 
@@ -32,9 +35,24 @@ static void prvTCPServerInit( void );
  */
 static BaseType_t prvServerStatus( eSocketNum sn );
 
+/*
+ * Compares the name in a json name/value pair to the char string s
+ * and returns 0 if they match (e.g. "cmd: 5" matches string "cmd").
+ */
+static int8_t jsoneq( const char *json, jsmntok_t *tok, const char *s );
+
+/*
+ * Parses the command from a json string and returns its int value, this 
+ * method does modify the original json string (e.g. "cmd: 5" returns 5).
+ */
+static int8_t parse_json_cmd( char *json, jsmntok_t *tok, int8_t num_tok );
+
 /* Holds the state of the TCP server connection. True if connection has been
  established and false if not. */
 BaseType_t xServerConnEstablished = pdFALSE;
+
+/* Handle to queue of commands for control task. */
+extern QueueHandle_t xControlCmdQueue;
 
 #ifdef _TCP_DEBUG_
     char debug_buf[20];
@@ -161,13 +179,13 @@ uint16_t size = 0, sentsize = 0;
 uint8_t tcp_buf[ tcpDATA_BUF_SIZE ];
 BaseType_t status;
 
-//int8_t r;
-//jsmn_parser p;
-//jsmntok_t t[16];
+int8_t r;
+jsmn_parser p;
+jsmntok_t t[ tcpNUM_JSON_TOKENS ];
+int8_t command;
 
 TickType_t xLastWakeTime;
 
-    //jsmn_init(&p);
     xLastWakeTime = xTaskGetTickCount();
 
     for( ;; )
@@ -196,19 +214,69 @@ TickType_t xLastWakeTime;
 
             #ifdef _TCP_DEBUG_
                 usart1_tx_str( "Received: " );
-                usart1_tx_str( tcp_buf );
+                usart1_tx_str( (char *)tcp_buf );
                 usart1_tx( '\n' );
             #endif
 
-                /* Parse message received. */
-                //r = jsmn_parse(&p, (const char *)buf, sizeof(buf), &t, sizeof(t));
-                //json_extract((char *) buf, t, r); 
+                jsmn_init( &p );
+                r = jsmn_parse( &p, (const char *)tcp_buf, strlen((char *)tcp_buf), t, sizeof(t) / sizeof(t[0]) );
+
+                if( r < 0 )
+                {
+                    usart1_tx_str( "Failed to parse JSON: " );
+                    itoa( r, debug_buf, 10 );
+                    usart1_tx_str( debug_buf );
+                    usart1_tx( '\n' );
+                }
+                else 
+                {
+                    command = parse_json_cmd( (char *)tcp_buf, t, r );
+                    usart1_tx_str( "Command: " );
+                    itoa( command, debug_buf, 10 );
+                    usart1_tx_str( debug_buf );
+                    usart1_tx( '\n' );
+
+                    xQueueSend( xControlCmdQueue, (void *)&command, 0 );
+                }
                 
                 /* Clear receive bit in socket interrupt register. */ 
                 setSn_IR( 0, Sn_IR_RECV );
+
+                /* Clear tcp buffer. */
+                memset( tcp_buf, 0, sizeof(tcp_buf) );
             }
         }
 
         vTaskDelayUntil( &xLastWakeTime, tcpDELAY_TIME );
     }
+}
+/*------------------------------------------------*/
+
+static int8_t jsoneq( const char *json, jsmntok_t *tok, const char *s )
+{
+    if( tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
+            strncmp( json + tok->start, s, tok->end - tok->start ) == 0 )
+    {
+        return 0;
+    }
+    return -1;
+}
+/*------------------------------------------------*/
+
+static int8_t parse_json_cmd( char *json, jsmntok_t *tok, int8_t num_tok )
+{
+    int8_t i; 
+
+    /* Assuming first token is of type object. */
+    for( i = 1; i < num_tok; i++ )
+    {
+        if( jsoneq( json, &tok[i], tcpJSON_CMD_ID ) == 0 )
+        {            
+            /* End points to char after end of token. */
+            json[ tok[i+1].end ] = 0;
+            return atoi( json + tok[i+1].start ); 
+        }    
+    }
+
+    return -1;
 }

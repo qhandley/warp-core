@@ -26,15 +26,21 @@ void spi_master_init( void )
     SPCR |= (1<<SPE) | (1<<MSTR);
 
     /* Enable double speed. */
-    SPSR |= (1<<SPI2X); 
+    //SPSR |= (1<<SPI2X); 
 }
 
-void spi_write_byte( uint8_t data )
+uint8_t spi_write_byte( uint8_t data )
 {
+    SPCR |= (1<<CPOL);
+
     /* Pull SS line low to start transfer. */
     __SPI_PORT &= ~(1<<__SPI_OUT_SS);
     SPDR = data;
     while( !(SPSR & (1<<SPIF)) );
     __SPI_PORT |= (1<<__SPI_OUT_SS);
+
+    SPCR &= ~(1<<CPOL);
+
+    return SPDR;
 }
 

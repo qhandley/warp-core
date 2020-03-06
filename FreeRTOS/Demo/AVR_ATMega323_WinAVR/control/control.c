@@ -24,13 +24,12 @@ portTASK_FUNCTION( vControlTask, pvParameters )
     ( void ) pvParameters;
 
 BaseType_t *command;
-BaseType_t buf[10];
 
     for( ;; )
     {
         if( xControlCmdQueue != 0 )
         {
-            if( xQueueReceive( xControlCmdQueue, &command, ( TickType_t ) 10 ) )
+            if( xQueueReceive( xControlCmdQueue, &command, 0 ) )
             {
                 /* Toggle LED. */
                 PORTB ^= (1 << PB0);

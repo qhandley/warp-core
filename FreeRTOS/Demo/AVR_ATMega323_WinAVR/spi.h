@@ -5,6 +5,6 @@
 #define  __SPI_DDR  DDRB 
 
 void spi_master_init( void );
-void spi_write_byte( uint8_t data );
+uint8_t spi_write_byte( uint8_t data );
 
 #endif /* SPI_H */
